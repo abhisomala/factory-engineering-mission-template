@@ -51,8 +51,11 @@ docs/agent_handoff/
 
 ## Bootstrapping the bundle (day one)
 
-Create `docs/agent_handoff/` with four files; the rest of the tiers
-accrue as the Mission runs:
+Create `docs/agent_handoff/` with four files — the fastest path is to
+copy `templates/agent_handoff-skeleton/` into it and fill the
+placeholders (the skeleton ships all four files below, plus header-only
+starters for the remaining tiers) — and the rest of the tiers accrue as
+the Mission runs:
 
 - **`00_README.md`** — the index. Must contain: an **as-of anchor**
   (date, `main` HEAD SHA, frozen evidence branch SHA if any, open PRs —
@@ -62,12 +65,15 @@ accrue as the Mission runs:
   `.factory/skills/host-validation/SKILL.md` §5 (empty table, dated
   header block).
 - **`MANIFEST.md`** — tamper detection for the bundle: one line per
-  bundle file (`sha256sum docs/agent_handoff/<file>` output); re-hash
-  any entry whose file changed, in the same commit as the change.
+  bundle file (`sha256sum docs/agent_handoff/<file>` output; stock macOS
+  uses `shasum -a 256`, which writes the same line format); re-hash
+  any entry whose file changed, in the same commit as the change. A
+  file cannot contain its own checksum, so `MANIFEST.md` itself stays
+  unlisted.
 - **`10_durable_instructions/`** — at minimum the dated decision record
-  (founder decisions, newest wins) and the rules/red-lines file. Copy the
-  tier skeleton for the remaining directories now (with headers only) or
-  create them when first used.
+  (founder decisions, newest wins) and the rules/red-lines file. The
+  remaining directories ship in the skeleton as header-only starters
+  and fill in when first used.
 
 A brand-new agent must be able to resume from the bundle alone. The
 resumability test passes when it knows: who the founder is and the
