@@ -295,6 +295,7 @@ docs/evidence-policy.md
 docs/linear-workflow.md
 docs/architecture.md
 docs/maturity.md                    honest proven-vs-unproven self-assessment
+docs/mission-plan.md                v0.1 development mission plan and status
 examples/example-linear-queue.md
 examples/example-daily-report.md
 scripts/validate.py                structural self-check (stdlib only)
