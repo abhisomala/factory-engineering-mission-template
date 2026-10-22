@@ -22,10 +22,10 @@ It exits 0 only when every check passes:
 | Check | What it proves | What it does NOT prove |
 |---|---|---|
 | Runtime directories exist (`docs/agent_handoff/`, `human_tests/`, `agent_reports/`) | the three write-into directories were created | nothing about their content quality |
-| Day-one bundle files non-empty (`00_README.md`, `HOST_VALIDATION_QUEUE.md`, `MANIFEST.md`, `10_durable_instructions/`) | the four files from quickstart step 4 exist and were filled in | that their content is *correct* for your project |
+| Day-one bundle files non-empty (`00_README.md`, `HOST_VALIDATION_QUEUE.md`, `MANIFEST.md`, `10_durable_instructions/`) | the four files exist non-empty | that their placeholders were filled in, or that their content is *correct* for your project — only the HVQ `[DATE]` placeholder (HVQ-shape row) and the manifest entries (MANIFEST-hashes row) are content-verified |
 | `human_tests/PENDING.md` exists | the host-evidence boundary was created | that any request block in it is well-formed |
-| HVQ shape (dated status block filled + table header present) | the queue follows the schema in `.factory/skills/host-validation/SKILL.md` §5 | that the queued items are the *right* items |
-| MANIFEST hashes (every entry matches its file; day-one files covered) | the bundle's integrity lines are real and current (works with `sha256sum` and `shasum -a 256` output) | tamper detection against a determined attacker |
+| HVQ shape (dated status block filled + table header present) | the two schema header elements are present: a `## Dated status block` header with the `[DATE]` placeholder gone, and a `\| ID \|` table header line | that the rest of the `.factory/skills/host-validation/SKILL.md` §5 schema (column set, row rules) is followed, or that the queued items are the *right* items |
+| MANIFEST hashes (every listed entry matches its file; `00_README.md` and `HOST_VALIDATION_QUEUE.md` covered) | every listed hash line matches its file on disk (works with `sha256sum` and `shasum -a 256` output), and the two day-one files are covered — entries for `10_durable_instructions/` and other bundle files are optional, verified when listed | tamper detection against a determined attacker, or the integrity of any *unlisted* bundle file |
 | AGENTS.md risk surfaces (placeholder block replaced) | you replaced the template's R2/R3 placeholder with your own definitions | that your definitions are good — a human reads them |
 
 ## Part 2 — human gates: what only you can verify
