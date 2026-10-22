@@ -43,11 +43,26 @@ It performs two checks:
 Exit code is 0 when every check passes, 1 otherwise. Output is concise and
 names every offending reference (file, line, and token) on failure.
 
-Usage:  python3 scripts/validate.py
+Adopted-repository mode (``--adopted``) answers a different question:
+*has a repository that adopted this template completed the quickstart's
+bootstrap outputs, and are they internally consistent?* It checks the
+three runtime directories, the four day-one bundle files,
+``human_tests/PENDING.md``, the host-validation-queue shape, the
+manifest hashes (tolerating the ``shasum``/``sha256sum`` difference), and
+whether the ``AGENTS.md`` risk-surface placeholder has been replaced. It
+proves existence and internal consistency only — the external gates
+(ruleset, credential scope, tracker labels, a live Mission) are paired
+with these machine checks in ``templates/readiness-checklist.md`` for a
+human to verify. The plain mode above is unchanged by this flag.
+
+Usage:  python3 scripts/validate.py              (template self-check)
+        python3 scripts/validate.py --adopted   (adopted-repo readiness)
 """
 
 from __future__ import annotations
 
+import argparse
+import hashlib
 import os
 import re
 import sys
@@ -225,7 +240,302 @@ def check_references(root: str, files: list[str]) -> dict:
     return result
 
 
+# --- Adopted-repository readiness mode (--adopted) -----------------------
+#
+# The checks below answer a different question from the two above: *has a
+# repository that adopted this template completed the quickstart's
+# bootstrap outputs, and are they internally consistent?* They prove
+# existence and internal consistency only. The external gates — ruleset
+# on, credential scope, tracker labels, a live Mission — are listed for a
+# human in templates/readiness-checklist.md.
+
+ADOPTED_RUNTIME_DIRS = ("docs/agent_handoff", "human_tests", "agent_reports")
+ADOPTED_BUNDLE_FILES = (
+    "docs/agent_handoff/00_README.md",
+    "docs/agent_handoff/HOST_VALIDATION_QUEUE.md",
+    "docs/agent_handoff/MANIFEST.md",
+)
+ADOPTED_BUNDLE_DIR = "docs/agent_handoff/10_durable_instructions"
+ADOPTED_PENDING = "human_tests/PENDING.md"
+ADOPTED_HVQ = "docs/agent_handoff/HOST_VALIDATION_QUEUE.md"
+ADOPTED_MANIFEST = "docs/agent_handoff/MANIFEST.md"
+AGENTS_MD = "AGENTS.md"
+RISK_SURFACES_HEADING = "### This project's risk surfaces"
+RISK_PLACEHOLDER_MARKER = "YOUR PROJECT'S R2/R3 SURFACES"
+RISK_EDIT_ME_MARKER = "[EDIT ME"
+HVQ_DATED_PREFIX = "## Dated status block"
+HVQ_TABLE_PREFIX = "| ID |"
+HVQ_DATE_PLACEHOLDER = "[DATE]"
+# sha256sum (Linux) writes "<64-hex>  <path>"; shasum -a 256 (stock macOS)
+# writes "<64-hex>  <path>" (text) or "<64-hex> *<path>" (binary). One
+# regex tolerates all three shapes.
+MANIFEST_ENTRY_RE = re.compile(r"^([0-9a-f]{64})[ \t]+\*?[ \t]*(\S.*?)\s*$")
+MANIFEST_REQUIRED = (
+    "docs/agent_handoff/00_README.md",
+    "docs/agent_handoff/HOST_VALIDATION_QUEUE.md",
+)
+
+
+def sha256_of(path: str) -> str | None:
+    """Hex sha256 of a file's bytes, or None if it cannot be read."""
+    try:
+        digest = hashlib.sha256()
+        with open(path, "rb") as handle:
+            for chunk in iter(lambda: handle.read(65536), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
+    except OSError:
+        return None
+
+
+def nonempty_md_files(root: str, rel_dir: str) -> list[str]:
+    """Names of non-empty *.md files directly inside rel_dir."""
+    full = os.path.join(root, rel_dir)
+    if not os.path.isdir(full):
+        return []
+    found: list[str] = []
+    for name in sorted(os.listdir(full)):
+        candidate = os.path.join(full, name)
+        if not os.path.isfile(candidate) or not name.endswith(".md"):
+            continue
+        try:
+            if os.path.getsize(candidate) > 0:
+                found.append(name)
+        except OSError:
+            pass
+    return found
+
+
+def parse_manifest(root: str) -> tuple[dict[str, str], list[str]]:
+    """Parse MANIFEST.md hash lines outside fenced code blocks.
+
+    Returns (entries: rel path -> expected sha256 hex, problems: messages
+    for lines that are malformed by convention, e.g. a self-entry).
+    """
+    entries: dict[str, str] = {}
+    problems: list[str] = []
+    path = os.path.join(root, ADOPTED_MANIFEST)
+    if not os.path.isfile(path):
+        return entries, problems
+    for _line_no, line in iter_prose_lines(read_text(path)):
+        match = MANIFEST_ENTRY_RE.match(line.strip())
+        if match is None:
+            continue
+        digest, rel = match.group(1), match.group(2).strip()
+        rel = rel.lstrip("./").replace(os.sep, "/")
+        if rel == ADOPTED_MANIFEST:
+            problems.append(
+                "MANIFEST.md lists itself — a file cannot contain its own "
+                "checksum; remove that entry"
+            )
+            continue
+        entries[rel] = digest
+    return entries, problems
+
+
+def adopted_checks(root: str) -> list[tuple[str, bool, list[str]]]:
+    """The six adopted-repo readiness checks: (title, passed, output)."""
+
+    results: list[tuple[str, bool, list[str]]] = []
+
+    # 1. Runtime directories.
+    lines: list[str] = []
+    passed = True
+    for rel_dir in ADOPTED_RUNTIME_DIRS:
+        if os.path.isdir(os.path.join(root, rel_dir)):
+            lines.append(f"  {rel_dir}/ present")
+        else:
+            passed = False
+            lines.append(f"  FAIL: runtime directory missing: {rel_dir}/")
+    if passed:
+        lines.append("  PASS: all runtime directories exist")
+    results.append(("Runtime directories", passed, lines))
+
+    # 2. Day-one bundle files, non-empty.
+    lines = []
+    passed = True
+    for rel_file in ADOPTED_BUNDLE_FILES:
+        full = os.path.join(root, rel_file)
+        if not os.path.isfile(full):
+            passed = False
+            lines.append(f"  FAIL: bundle file missing: {rel_file}")
+        elif os.path.getsize(full) == 0:
+            passed = False
+            lines.append(f"  FAIL: bundle file exists but is empty: {rel_file}")
+        else:
+            lines.append(f"  {rel_file} non-empty")
+    durable = nonempty_md_files(root, ADOPTED_BUNDLE_DIR)
+    if durable:
+        lines.append(
+            f"  {ADOPTED_BUNDLE_DIR}/ has {len(durable)} non-empty file(s)"
+        )
+    else:
+        passed = False
+        lines.append(
+            f"  FAIL: {ADOPTED_BUNDLE_DIR}/ missing or empty (needs the "
+            "dated decision record + rules/red-lines starter)"
+        )
+    if passed:
+        lines.append("  PASS: all four day-one bundle outputs exist non-empty")
+    results.append(("Day-one bundle files", passed, lines))
+
+    # 3. human_tests/PENDING.md.
+    lines = []
+    if os.path.isfile(os.path.join(root, ADOPTED_PENDING)):
+        lines.append("  PASS: human_tests/PENDING.md exists")
+        results.append(("human_tests/PENDING.md", True, lines))
+    else:
+        lines.append("  FAIL: human_tests/PENDING.md missing")
+        results.append(("human_tests/PENDING.md", False, lines))
+
+    # 4. Host validation queue shape.
+    lines = []
+    passed = True
+    hvq_path = os.path.join(root, ADOPTED_HVQ)
+    if not os.path.isfile(hvq_path):
+        passed = False
+        lines.append(f"  FAIL: queue file missing: {ADOPTED_HVQ}")
+    else:
+        hvq_lines = read_text(hvq_path).splitlines()
+        dated = [ln for ln in hvq_lines if ln.startswith(HVQ_DATED_PREFIX)]
+        if not dated:
+            passed = False
+            lines.append(f"  FAIL: no '{HVQ_DATED_PREFIX}' header found")
+        elif any(HVQ_DATE_PLACEHOLDER in ln for ln in dated):
+            passed = False
+            lines.append(
+                "  FAIL: the dated status block still carries the [DATE] "
+                "placeholder — replace it with the actual date"
+            )
+        if not any(ln.startswith(HVQ_TABLE_PREFIX) for ln in hvq_lines):
+            passed = False
+            lines.append(
+                f"  FAIL: no table header row starting '{HVQ_TABLE_PREFIX} ...'"
+            )
+        if passed:
+            lines.append(
+                "  PASS: dated status block (filled) + table header present"
+            )
+    results.append(("Host validation queue shape", passed, lines))
+
+    # 5. MANIFEST integrity hashes.
+    lines = []
+    passed = True
+    entries, problems = parse_manifest(root)
+    for problem in problems:
+        passed = False
+        lines.append(f"  FAIL: {problem}")
+    if not entries:
+        passed = False
+        lines.append(
+            "  FAIL: no hash entries (one line per day-one bundle file; "
+            "sha256sum on Linux, shasum -a 256 on stock macOS)"
+        )
+    else:
+        for rel in sorted(entries):
+            actual = sha256_of(os.path.join(root, rel))
+            if actual is None:
+                passed = False
+                lines.append(f"  FAIL: entry points at a missing file: {rel}")
+            elif actual != entries[rel]:
+                passed = False
+                lines.append(
+                    f"  FAIL: hash mismatch: {rel} — manifest says "
+                    f"{entries[rel]}, file hashes {actual}; re-hash in the "
+                    "same commit as the change"
+                )
+        for required in MANIFEST_REQUIRED:
+            if required not in entries:
+                passed = False
+                lines.append(
+                    f"  FAIL: day-one file not covered by the manifest: "
+                    f"{required}"
+                )
+        if passed:
+            noun = "entry" if len(entries) == 1 else "entries"
+            lines.append(
+                f"  PASS: {len(entries)} {noun}, all match the files on "
+                "disk; day-one files covered"
+            )
+    results.append(("MANIFEST integrity hashes", passed, lines))
+
+    # 6. AGENTS.md risk surfaces.
+    lines = []
+    passed = True
+    agents_path = os.path.join(root, AGENTS_MD)
+    if not os.path.isfile(agents_path):
+        passed = False
+        lines.append("  FAIL: AGENTS.md not found")
+    else:
+        agents_text = read_text(agents_path)
+        if RISK_SURFACES_HEADING not in agents_text:
+            passed = False
+            lines.append(
+                f"  FAIL: the '{RISK_SURFACES_HEADING}' block is missing "
+                "(the placeholder was deleted instead of replaced)"
+            )
+        if RISK_PLACEHOLDER_MARKER in agents_text:
+            passed = False
+            lines.append(
+                "  FAIL: the 'YOUR PROJECT'S R2/R3 SURFACES — edit me' "
+                "placeholder is still present — replace it with your "
+                "project's R2/R3 definitions"
+            )
+        if RISK_EDIT_ME_MARKER in agents_text:
+            passed = False
+            lines.append(
+                "  FAIL: the risk-surfaces block still contains '[EDIT ME' "
+                "placeholders — fill them in"
+            )
+        if passed:
+            lines.append(
+                "  PASS: 'This project's risk surfaces' present and filled in"
+            )
+    results.append(("AGENTS.md risk surfaces", passed, lines))
+
+    return results
+
+
+def parse_args() -> argparse.Namespace:
+    """Parse the command line; plain mode is the default and unchanged."""
+    parser = argparse.ArgumentParser(
+        description=(
+            "Structural self-validation for the template itself, or "
+            "(with --adopted) readiness checks for a repository that "
+            "adopted the template."
+        )
+    )
+    parser.add_argument(
+        "--adopted",
+        action="store_true",
+        help=(
+            "check an adopted repository's bootstrap outputs instead of "
+            "the template's shipped structure"
+        ),
+    )
+    return parser.parse_args()
+
+
+def main_adopted() -> int:
+    root = repo_root()
+    print("validate.py --adopted - adopted-repository readiness check")
+    print(f"repo root: {root}")
+    print()
+    results = adopted_checks(root)
+    for index, (title, _passed, lines) in enumerate(results, start=1):
+        print(f"[{index}/6] {title}")
+        for line in lines:
+            print(line)
+        print()
+    checks_passed = sum(1 for _t, passed, _l in results if passed)
+    failed = checks_passed < len(results)
+    print(f"RESULT: {'FAIL' if failed else 'PASS'} ({checks_passed}/6 checks passed)")
+    return 1 if failed else 0
+
+
 def main() -> int:
+    if parse_args().adopted:
+        return main_adopted()
     root = repo_root()
     print("validate.py - structural self-validation")
     print(f"repo root: {root}")

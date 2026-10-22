@@ -376,6 +376,7 @@ templates/mission-approval-prompt.md
 templates/founder-dependency-reduction-prompt.md
 templates/task-contract.md
 templates/worker-handoff.md
+templates/readiness-checklist.md     adopted-repo readiness (machine + human checks)
 templates/agent_handoff-skeleton/00_README.md   day-one bundle starter
 templates/agent_handoff-skeleton/HOST_VALIDATION_QUEUE.md
 templates/agent_handoff-skeleton/MANIFEST.md
@@ -411,6 +412,19 @@ every internal file reference resolves, and non-zero (naming the offending
 references) otherwise. It uses only the Python standard library and never
 touches the network. What is proven versus still unproven about this
 template is recorded in `docs/maturity.md`.
+
+If you have **adopted** the template (quickstart steps 1–4 complete),
+also run the adopted-repo check:
+
+```text
+python3 scripts/validate.py --adopted
+```
+
+It verifies your bootstrap outputs: the runtime directories, the four
+day-one bundle files, `human_tests/PENDING.md`, the host-validation
+queue's shape, the manifest hashes, and the `AGENTS.md` risk-surface
+edit. What it proves — and the external gates only a human can verify —
+is paired in `templates/readiness-checklist.md`.
 
 ## Limitations and safety disclaimer
 
