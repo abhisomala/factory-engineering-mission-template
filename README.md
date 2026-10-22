@@ -294,9 +294,26 @@ docs/risk-model.md
 docs/evidence-policy.md
 docs/linear-workflow.md
 docs/architecture.md
+docs/maturity.md                    honest proven-vs-unproven self-assessment
 examples/example-linear-queue.md
 examples/example-daily-report.md
+scripts/validate.py                structural self-check (stdlib only)
+agent_reports/2026-10-22.md        Day 1 daily report
 ```
+
+## Verifying your copy
+
+Run the structural self-check from the repository root:
+
+```text
+python3 scripts/validate.py
+```
+
+It exits 0 when the README contents tree matches the working tree and
+every internal file reference resolves, and non-zero (naming the offending
+references) otherwise. It uses only the Python standard library and never
+touches the network. What is proven versus still unproven about this
+template is recorded in `docs/maturity.md`.
 
 ## Limitations and safety disclaimer
 
