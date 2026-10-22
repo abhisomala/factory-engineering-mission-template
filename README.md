@@ -424,6 +424,9 @@ docs/maturity.md                    honest proven-vs-unproven self-assessment
 docs/mission-plan.md                v0.1 development mission plan and status
 examples/example-linear-queue.md
 examples/example-daily-report.md
+examples/worked-example.md
+examples/worked-r3-example.md
+examples/worked-host-validation.md
 scripts/validate.py                structural self-check (stdlib only)
 agent_reports/2026-10-22.md        Day 1 + Day 2 daily reports (the template's own development record)
 ```
