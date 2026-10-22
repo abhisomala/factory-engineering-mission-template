@@ -37,7 +37,7 @@ resumes the same way.
 | Day | Milestone | Ships | Status |
 |---|---|---|---|
 | 1 | Self-validation + honest maturity statement | `scripts/validate.py` (positive + negative tested), `docs/maturity.md`, "Verifying your copy" README section | DONE 2026-10-22 (PR #1) |
-| 2 | Cold-start adoption, measured | cold-start test by a zero-context reader; quickstart fixes + measured duration claim; a new readiness-checklist template; "Is this for you?" README section; this mission plan committed | IN PROGRESS |
+| 2 | Cold-start adoption, measured | cold-start test by a zero-context reader; quickstart fixes + measured duration claim; a new readiness-checklist template; "Is this for you?" README section; this mission plan committed | DONE 2026-10-22 (PRs #2, #3, #4, #6; readiness checklist + `--adopted` mode in draft PR #5 — R2, awaiting independent review) |
 | 3 | Worked examples | full R1 + R2 lifecycle example; R3 authorization example; validator schema checks | PLANNED |
 | 4 | Automated trust | CI workflow running the validator; privacy-scan script with a self-test; link lint. Touches verification gates, so independent review before merge | PLANNED |
 | 5 | README redesign I (design agent) | redesign spec built from the cold-start evidence; terminology pass; two diagram-style options prepared for the founder's pick | PLANNED |

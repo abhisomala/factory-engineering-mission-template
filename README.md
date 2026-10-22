@@ -38,6 +38,36 @@ The core promise: **the agents ship; the founder decides.** Work moves at
 machine speed on everything below the risk line, and the founder's
 attention is reserved for the decisions that are genuinely theirs.
 
+## Is this for you?
+
+**It fits** long-lived engineering repositories where autonomous agents
+do real work and the founder is the bottleneck: delegated autonomy with
+audit trails is the point, and a forge plus a tracker are already in
+place (or cheap to add).
+
+**It requires** an agent platform that loads `.factory/droids/` and
+`.factory/skills/` (or an equivalent on yours), and tolerance for
+process discipline: dated durable-context addenda after every task, PR,
+and decision; daily reports; independent review for every R2 change;
+host-validation windows executed by a human; and a ~2-PR
+review-backpressure cap.
+
+**It is not for** throwaway prototypes, or teams unwilling to maintain
+that discipline — the structure only works if the records are kept.
+
+**Solo use is covered** (see "Customizing" → "Scale down"), but
+materially independent R2 review is still mandatory: a different worker,
+a fresh session, or the founder — never the authoring context.
+
+**What it costs, honestly:** tracker and label upkeep;
+durable-context writing discipline after every task, PR, and decision; a
+daily report; a second reviewer for every R2 change;
+verbatim-executable host requests for non-engineer operators; and founder
+attention for R3, budgets, and the genuinely-human decisions. Up front
+you decide: your R2/R3 definitions, required hosts, tracker choice,
+agent identity, label set, and how solo review independence is
+achieved.
+
 ## How it fits together
 
 ```mermaid
@@ -395,7 +425,7 @@ docs/mission-plan.md                v0.1 development mission plan and status
 examples/example-linear-queue.md
 examples/example-daily-report.md
 scripts/validate.py                structural self-check (stdlib only)
-agent_reports/2026-10-22.md        Day 1 daily report
+agent_reports/2026-10-22.md        Day 1 + Day 2 daily reports (the template's own development record)
 ```
 
 ## Verifying your copy
