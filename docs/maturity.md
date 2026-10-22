@@ -23,6 +23,14 @@ As of: 2026-10-22.
   references resolve. It runs on this repository with no false positives.
   Its own passing and failing behavior is exercised by a negative test
   (a deliberately broken scratch copy) recorded in the Day 1 report.
+- **Exercised its own R2 conditional-merge path.** The readiness check
+  (`scripts/validate.py --adopted` plus `templates/readiness-checklist.md`)
+  went through the complete process this template prescribes for
+  verification-logic changes: implemented by one agent, independently
+  reviewed by another (conditions 1–6 reproduced; condition 7 caught the
+  checklist overclaiming what the code checks), corrected, re-reviewed
+  to APPROVE, and merged — the full trail visible in PR #5 and the Day 2
+  report (`agent_reports/2026-10-22.md`).
 
 ## Unproven
 
