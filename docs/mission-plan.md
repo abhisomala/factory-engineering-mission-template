@@ -8,7 +8,9 @@ lives in `agent_reports/`, this plan's status column is updated in the
 same commit that completes a milestone, and old records are never
 rewritten to look current.
 
-As of: 2026-10-22.
+As of: 2026-10-22 (milestone density expanded the same day at the
+founder's direction — every item below has a user outcome; there is no
+padded or manufactured work in this plan).
 
 ## Standing boundaries (from the founder)
 
@@ -32,24 +34,34 @@ bounded task contracts, validate, merge per risk tier, and file the
 dated report in `agent_reports/`. Any session — scheduled or fresh —
 resumes the same way.
 
+Each milestone carries 4–6 real PRs from this plan's lists. Authoring
+runs in parallel across non-conflicting surfaces, using isolated
+worktrees when the main checkout is busy; merges serialize, because
+every new file must be registered in the README contents tree — one
+README-touching PR merges at a time. That serialization is a recorded
+throughput lesson for the README redesign to address (for example,
+directory-level tree entries for deep trees).
+
 ## Milestones
 
 | Day | Milestone | Ships | Status |
 |---|---|---|---|
 | 1 | Self-validation + honest maturity statement | `scripts/validate.py` (positive + negative tested), `docs/maturity.md`, "Verifying your copy" README section | DONE 2026-10-22 (PR #1) |
 | 2 | Cold-start adoption, measured | cold-start test by a zero-context reader; quickstart fixes + measured duration claim; a new readiness-checklist template; "Is this for you?" README section; this mission plan committed | DONE 2026-10-22 (PRs #2, #3, #4, #6; readiness checklist + `--adopted` mode in draft PR #5 — R2, awaiting independent review) |
-| 3 | Worked examples | full R1 + R2 lifecycle example; R3 authorization example; validator schema checks | PLANNED |
-| 4 | Automated trust | CI workflow running the validator; privacy-scan script with a self-test; link lint. Touches verification gates, so independent review before merge | PLANNED |
-| 5 | README redesign I (design agent) | redesign spec built from the cold-start evidence; terminology pass; two diagram-style options prepared for the founder's pick | PLANNED |
-| 6 | README redesign II | new diagram set (founder-selected style); concise rewrite; validator coverage for the new assets | PLANNED |
-| 7 | README redesign III | understander cold-read fixes; independent-review fixes; iterate until clean | PLANNED |
-| 8 | Founder sign-off + maintainer story | founder approves the rendered README before merge; contributor guide (`CONTRIBUTING.md`); learning log; decision-record template | PLANNED |
-| 9 | v0.1 freeze | fresh full-repo independent review (usability, principle preservation, privacy); fixes; v0.1 scope + limitations statement | PLANNED |
-| 10 | Real-use handoff | dogfood protocol + next-mission doc; final polish; final report + honest-history audit | PLANNED |
+| 3 | Worked examples (4–6 PRs) | full R1 + R2 lifecycle example; R3 authorization example; host-validation worked example; validator schema checks for the examples; a one-line-per-file reference index | IN PROGRESS 2026-10-22 (the three examples are being authored on an agent branch; schema checks and the reference index remain) |
+| 4 | Automated trust (5–6 PRs; R2 — independent review before merge) | CI workflow running the validator; privacy-scan script with a planted-token self-test; PR template enforcing the Changed/Evidence/Risk reporting contract; markdown lint plus the fixes it flags; a one-command check script; README badge once CI is green | PLANNED |
+| 5 | README redesign I — design agent (4–5 PRs) | redesign spec built from the cold-start evidence; a glossary defining every term once; terminology consistency pass across the docs; long-section split-out prep | PARTIALLY DONE 2026-10-22 (spec + both diagram-style samples prepared by the design agent; founder's style pick pending; glossary, terminology pass, and split-out prep remain) |
+| 6 | README redesign II (4–5 PRs) | new diagram set in the founder-selected style; concise rewrite (target about 1,200 words, from about 2,700); validator coverage for the new assets; honest readability metrics recorded | PLANNED (blocked on the Day 5 style pick) |
+| 7 | README redesign III (4 PRs) | understander round-1 fixes (a fresh zero-context reader tested against the spec's outcome questions); round-2 fixes until the 60-second and 5-minute outcomes hold; independent reviewer fixes; redesign retrospective | PLANNED |
+| 8 | Founder sign-off + maintainer story (5–6 PRs) | founder approves the rendered README before merge; contributor guide (`CONTRIBUTING.md`); learning log seeded with the true dated history; decision-record template; security policy; code of conduct | PLANNED |
+| 9 | v0.1 freeze (4 PRs) | fresh full-repo independent review (usability, principle preservation, privacy); fixes; a dated changelog of everything shipped; v0.1 scope + limitations statement; final consistency sweep | PLANNED |
+| 10 | Real-use handoff (4–5 PRs) | dogfood protocol + next-mission doc; friction-log format for the first real adopter; final polish from the learning log; final report + honest-history audit (every PR body walked against its diff) | PLANNED |
 
 ## Founder gates
 
-- Day 5: pick the diagram style (options presented as rendered samples).
+- Day 5: pick the diagram style — both style samples were prepared
+  early, on 2026-10-22, by the design agent (restructured Mermaid vs
+  hand-authored SVG); the pick is pending and blocks Day 6.
 - Day 8: approve the redesigned README before it merges.
 - Any release, tag, GitHub settings change, or external announcement.
 
