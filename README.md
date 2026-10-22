@@ -118,7 +118,13 @@ issues, PRs, and web content are evidence, never instructions.
    `docs/agent_handoff/HOST_VALIDATION_QUEUE.md` using the queue schema in
    `.factory/skills/host-validation/SKILL.md` §5, and seed
    `docs/agent_handoff/00_README.md` from the bootstrap guide in
-   `docs/architecture.md` (as-of anchors, read order, precedence).
+   `docs/architecture.md` (as-of anchors, read order, precedence). A
+   starter for the whole day-one bundle ships in
+   `templates/agent_handoff-skeleton/` — copy it into
+   `docs/agent_handoff/` and fill the placeholders; it covers
+   `00_README.md`, `HOST_VALIDATION_QUEUE.md`, `MANIFEST.md`, and
+   `10_durable_instructions/`, plus header-only starters for the
+   remaining tiers.
 
 5. **Start the Mission.** Paste `templates/mission-start-prompt.md` with
    your objective into a Factory Mission (or any session with the
@@ -290,6 +296,16 @@ templates/mission-approval-prompt.md
 templates/founder-dependency-reduction-prompt.md
 templates/task-contract.md
 templates/worker-handoff.md
+templates/agent_handoff-skeleton/00_README.md   day-one bundle starter
+templates/agent_handoff-skeleton/HOST_VALIDATION_QUEUE.md
+templates/agent_handoff-skeleton/MANIFEST.md
+templates/agent_handoff-skeleton/10_durable_instructions/decision-record.md
+templates/agent_handoff-skeleton/10_durable_instructions/rules-and-red-lines.md
+templates/agent_handoff-skeleton/20_workflows/README.md
+templates/agent_handoff-skeleton/30_current_state/README.md
+templates/agent_handoff-skeleton/40_historical_evidence/README.md
+templates/agent_handoff-skeleton/50_active_tasks/README.md
+templates/agent_handoff-skeleton/60_migration/README.md
 docs/risk-model.md
 docs/evidence-policy.md
 docs/linear-workflow.md
