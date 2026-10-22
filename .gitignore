@@ -1,0 +1,19 @@
+# Secrets and environment never enter the repository
+.env
+.env.*
+*.pem
+*.key
+credentials*
+secrets*
+
+# Local artifacts
+logs/
+*.log
+__pycache__/
+.venv/
+node_modules/
+
+# Evidence discipline: raw host artifacts stay on the host where they were
+# produced; only sanitized results belong in human_tests/results/
+.DS_Store
+Thumbs.db
