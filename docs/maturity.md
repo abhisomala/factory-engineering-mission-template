@@ -26,9 +26,13 @@ As of: 2026-10-22.
 
 ## Unproven
 
-- **Quickstart duration.** The README claims a five-minute quickstart.
-  That duration has not been measured by a cold reader who has never seen
-  the template; it is an estimate, not a measurement.
+- **Quickstart duration, human-paced.** Measured once (2026-10-22) by a
+  zero-context agent reader: 7m03s for reading plus the executable local
+  steps at machine speed, excluding the external platform steps (ruleset,
+  credential, tracker labels, Mission start). A human-paced adoption —
+  including those external steps — is still unmeasured. The cold-start
+  run and its findings are recorded in the Day 2 report
+  (`agent_reports/2026-10-22.md`).
 - **Third-party adoption.** No external team has adopted the template, so
   there is no real-use data about how it behaves in another project.
 - **Continuous integration.** There is no CI pipeline yet; the
@@ -42,6 +46,6 @@ As of: 2026-10-22.
 
 Every `PROVEN` item above points at an artifact in this repository or a
 recorded review, and every `UNPROVEN` item names a specific gap with a
-concrete way to close it (measure the quickstart, onboard a team, add CI,
-run the example end to end). When a gap closes, move the item and date the
-change rather than deleting the record.
+concrete way to close it (measure a human-paced quickstart, onboard a
+team, add CI, run the example end to end). When a gap closes, move the
+item and date the change rather than deleting the record.

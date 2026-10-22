@@ -51,6 +51,18 @@ the repository, fix the record first.
   founder first. Every time. Never approximate or simulate an R3 action
   and call it done.**
 
+### This project's risk surfaces
+
+<!-- YOUR PROJECT'S R2/R3 SURFACES — edit me: replace the two [EDIT ME]
+     lines below with what R2 and R3 mean in THIS repository, mirror the
+     definitions in `docs/risk-model.md`, then delete this comment. -->
+
+- **R2 here:** [EDIT ME — the surfaces whose failure changes what
+  "correct" means, e.g., verification/acceptance logic, safety flows,
+  privacy, credentials, telemetry]
+- **R3 here:** [EDIT ME — the real external side effects that always
+  require founder authorization]
+
 ## Red lines (block work and escalate immediately)
 
 - **False CONFIRMED.** A truthful `UNCONFIRMED` always beats a claim of

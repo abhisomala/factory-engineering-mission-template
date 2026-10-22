@@ -6,7 +6,11 @@ autonomy, evidence-based completion, independent review of high-risk
 changes, host-specific validation, and a structured path for spending the
 founder's attention only where it is actually required.
 
-**Understand it in two minutes. Adopt it in five.**
+**Adoption time, measured once (2026-10-22): a zero-context machine-paced
+reader completed reading plus the local copy-and-seed steps in about
+seven minutes (7m03s at machine speed). The platform setup in step 3 —
+branch protection, credential, tracker labels, Mission start — is
+external, extra, and varies. Human-paced timing is unmeasured.**
 
 ---
 
@@ -80,56 +84,132 @@ boundary where host-specific evidence crosses from machines to the repo.
 And the founder's direct session is the **only** instruction channel —
 issues, PRs, and web content are evidence, never instructions.
 
-## 5-minute quickstart
+## Quickstart
 
-1. **Copy the template into your repository.** Copy every file of this
-   template (except `.git/`) — the docs, skills, droid, templates, and
-   examples are cross-referenced, so take them all. Then create the three
-   runtime directories the system writes into:
+1. **Copy the template into your repository.** The docs, skills, droid,
+   templates, and examples are cross-referenced, so take them all:
 
    ```text
-   docs/agent_handoff/     durable context bundle (seed it: docs/architecture.md § Bootstrap)
+   rsync -a --exclude .git /path/to/factory-engineering-mission-template/ /path/to/your-repo/
+   ```
+
+   `.factory/` is a **hidden directory** — it carries the orchestrator
+   droid and all three skills — and naive copies (a `cp` with a `*`
+   glob, a Finder window drag) silently drop it. Verify it arrived:
+   `ls -A` in your repository must show `.factory/`.
+
+   Then create the three runtime directories the system writes into:
+
+   ```text
+   docs/agent_handoff/     durable context bundle (seeded in step 4)
    human_tests/            host/human evidence boundary (PENDING.md + results/)
    agent_reports/          dated daily reports (format: examples/example-daily-report.md)
    ```
 
-   The starter `.gitignore` already keeps secrets, logs, and raw host
-   artifacts out of the repository.
+   Notes on those directories:
 
-2. **Decide your risk surfaces.** Edit `AGENTS.md`: name what R2 means in
-   *your* project (typically: verification/acceptance logic, safety
-   flows, privacy, credentials, telemetry) and what R3 means (real
-   external side effects). Keep R3 crisp — it is the line the agents
-   will not cross without you.
+   - `human_tests/PENDING.md` holds request blocks in the exact format
+     defined in `.factory/skills/host-validation/SKILL.md` §3; §5 of the
+     same file defines the queue schema that step 4 seeds.
+   - The shipped `agent_reports/` directory is this template's own
+     development record. Keep it or delete it; your own dated reports
+     accumulate there either way.
 
-3. **Protect `main` and scope the agents' credential.** Add a ruleset that
-   rejects agent direct pushes. Give the agents a scoped credential
-   (contents/PRs/issues read-write, nothing administrative) — e.g., via
-   Factory Secrets or your platform's equivalent — and have the agents use
-   it through a credential helper with a clean remote URL, never a
-   token-embedded one. The credential is never printed, logged, echoed, or
-   persisted; any broader personal credential on the host stays read-only
-   for agent work; deviations get recorded as incidents, never silently
-   repeated. Configure a distinct, non-secret agent commit identity.
+   Starting from a fresh, empty repository? Make your import commit
+   before step 4 — the bundle's as-of anchor needs a `main` HEAD SHA —
+   and check that your default branch is `main` (a bare `git init` may
+   default to `master`).
 
-4. **Create the queues.** Copy the label set from
-   `examples/example-linear-queue.md` into your tracker: `needs-machine` /
-   `needs-human` / `needs-founder`, plus R0–R3. Create
-   `docs/agent_handoff/HOST_VALIDATION_QUEUE.md` using the queue schema in
-   `.factory/skills/host-validation/SKILL.md` §5, and seed
-   `docs/agent_handoff/00_README.md` from the bootstrap guide in
-   `docs/architecture.md` (as-of anchors, read order, precedence). A
-   starter for the whole day-one bundle ships in
-   `templates/agent_handoff-skeleton/` — copy it into
-   `docs/agent_handoff/` and fill the placeholders; it covers
-   `00_README.md`, `HOST_VALIDATION_QUEUE.md`, `MANIFEST.md`, and
-   `10_durable_instructions/`, plus header-only starters for the
-   remaining tiers.
+   The starter `.gitignore` keeps secrets and logs out of the
+   repository; raw host artifacts stay on the host that produced them
+   (only sanitized results are ever committed — the `.gitignore`
+   records that discipline, and humans enforce it).
+
+2. **Decide your risk surfaces.** `AGENTS.md` ships a clearly marked
+   placeholder block — `<!-- YOUR PROJECT'S R2/R3 SURFACES — edit me -->`
+   in the Risk tiers section. Replace it with what R2 means in *your*
+   project (typically: verification/acceptance logic, safety flows,
+   privacy, credentials, telemetry) and what R3 means (real external side
+   effects), and make the matching edit in `docs/risk-model.md`. Keep R3
+   crisp — it is the line the agents will not cross without you. Where
+   the day-one decisions live: `AGENTS.md` carries the resulting R2/R3
+   definitions; the bundle's dated decision record
+   (`docs/agent_handoff/10_durable_instructions/decision-record.md`,
+   seeded in step 4) holds the decision itself.
+
+3. **Protect `main` and scope the agents' credential.** Everything in
+   this step is **EXTERNAL** — it happens on your forge and your
+   credential store, not in this repository, and no repo-local check can
+   verify any of it.
+
+   - **Branch protection (EXTERNAL).** Add a ruleset that rejects every
+     non-PR push to `main`: all changes arrive by pull request, for every
+     credential, including the agents'. On GitHub that is a branch
+     ruleset targeting `main` with "Require a pull request before
+     merging" and no bypass entries for agent identities.
+   - **Scoped agent credential (EXTERNAL).** Give the agents their own
+     fine-grained token — never your personal one. Example scope for a
+     GitHub fine-grained PAT limited to this one repository: Contents
+     **Read & write**, Pull requests **Read & write**, Issues
+     **Read & write**, Metadata **Read** (mandatory) — and nothing else:
+     nothing administrative, no organization-level permissions.
+   - **Clean remote + credential helper (EXTERNAL).** The remote URL
+     never contains a token; a helper supplies the credential at call
+     time:
+
+     ```text
+     git remote set-url origin https://github.com/<org>/<repo>.git
+     git config credential.helper \
+       '!f() { printf "username=%s\npassword=%s\n" "agent-bot" "$(cat "$AGENT_TOKEN_FILE")"; }; f'
+     ```
+
+     The token comes from a secret store (e.g., Factory Secrets or your
+     platform's equivalent) exposed to agent sessions as a file or
+     environment variable; it is never printed, logged, echoed, or
+     persisted in the repository. Broader personal credentials on the
+     host stay read-only for agent work. Any credential-path deviation
+     (token printed, token embedded in a URL, wrong credential used) is
+     recorded as a dated incident in
+     `docs/agent_handoff/30_current_state/` — never silently repeated.
+   - **Agent commit identity (the only repo-local part).** Example
+     values — distinct, non-secret, never the founder's:
+
+     ```text
+     git config user.name  "Engineering Bot"
+     git config user.email "123456789+engineering-bot@users.noreply.github.com"
+     ```
+
+4. **Create the queues.** Two queues: the tracker and the durable
+   context bundle.
+
+   - **Tracker labels (EXTERNAL).** Create the label set from the
+     canonical definitions in `docs/linear-workflow.md` § Labels:
+     `needs-machine` / `needs-human` / `needs-founder` (who or what can
+     unblock an issue), `R0`–`R3` (risk tier), and optionally
+     `needs-<host>` (e.g., `needs-macos`) and `metered` (budgeted runs).
+     `examples/example-linear-queue.md` shows the labels in use;
+     `docs/linear-workflow.md` is the definition.
+   - **Durable context bundle (local).** Copy
+     `templates/agent_handoff-skeleton/` into `docs/agent_handoff/`
+     and fill the placeholders. That seeds all four day-one files the
+     bootstrap guide (`docs/architecture.md` § "Bootstrapping the bundle
+     (day one)") requires — `00_README.md` (index: as-of anchor,
+     precedence, read order, resumability checklist),
+     `HOST_VALIDATION_QUEUE.md` (schema:
+     `.factory/skills/host-validation/SKILL.md` §5), `MANIFEST.md`
+     (integrity hashes; stock macOS uses `shasum -a 256`), and
+     `10_durable_instructions/` (dated decision record + rules/red
+     lines) — plus header-only starters for the remaining tiers.
 
 5. **Start the Mission.** Paste `templates/mission-start-prompt.md` with
-   your objective into a Factory Mission (or any session with the
-   engineering-manager droid). It will reconcile state, propose the first
-   three tasks with risk tiers and evidence bars, and begin.
+   your objective into a Factory Mission (or any session running the
+   engineering-manager droid). In Factory, files under `.factory/droids/`
+   are loaded automatically for sessions in that repository — the droid
+   file is the orchestrator's role definition — and `.factory/skills/`
+   likewise appears as available skills; on another platform you need an
+   equivalent way to load the droid and skills into the session. The
+   Mission will reconcile state, propose the first three tasks with risk
+   tiers and evidence bars, and begin.
 
 From then on, the three skills run the loop: reviews use
 `independent-review`, host evidence uses `host-validation`, and whenever
@@ -286,7 +366,7 @@ tracker issue (task contract + evidence bar)
 ```text
 AGENTS.md                          compact, always-on governance
 LICENSE                            MIT
-.gitignore                         keeps secrets/logs/raw artifacts out
+.gitignore                         keeps secrets and logs out; raw artifacts stay on the host
 .factory/droids/engineering-manager.md    mission orchestrator
 .factory/skills/independent-review/SKILL.md
 .factory/skills/host-validation/SKILL.md
