@@ -28,11 +28,18 @@ padded or manufactured work in this plan).
 
 ## Cadence
 
-A scheduled automation runs each morning (09:00 local) and executes the
-next incomplete milestone end to end: reconcile state, delegate
-bounded task contracts, validate, merge per risk tier, and file the
-dated report in `agent_reports/`. Any session — scheduled or fresh —
-resumes the same way.
+Changed 2026-10-23 (dated addendum; founder decision): the scheduled
+morning automation (`mission-daily-milestone-run`, 09:00 local, created
+2026-10-22 — see the Day 2 report) was deleted after its first run
+failed partway: it authored and opened Day 3's schema PR, then stopped
+before review, merge, and the daily report (the full account is in the
+Day 3 report). Its absence was verified on 2026-10-23 (founder
+session; re-verified the same day against the platform's automation
+list — no local, no cloud automations). The founder chose to prompt the
+Mission daily instead. Each prompted session — like any fresh session —
+resumes the same way: reconcile state, delegate bounded task
+contracts, validate, merge per risk tier, and file the dated report in
+`agent_reports/`.
 
 Each milestone carries 4–6 real PRs from this plan's lists. Authoring
 runs in parallel across non-conflicting surfaces, using isolated
