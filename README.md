@@ -424,6 +424,7 @@ docs/architecture.md
 docs/maturity.md                    honest proven-vs-unproven self-assessment
 docs/mission-plan.md                v0.1 development mission plan and status
 docs/worked-example-schema.md       structural checks and synthetic-evidence limits
+docs/reference-index.md             one line per shipped file (what each file is)
 examples/example-linear-queue.md
 examples/example-daily-report.md
 examples/worked-example.md
