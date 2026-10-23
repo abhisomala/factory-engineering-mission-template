@@ -6,7 +6,7 @@ structural integrity. It answers one question: *is this copy of the
 template complete and internally consistent?* It does not run tests, call
 the network, or need git; it only reads files from disk.
 
-It performs two checks:
+It performs three checks:
 
 1. README contents tree.
    The fenced file list under the ``## Repository contents`` heading in
@@ -40,6 +40,12 @@ It performs two checks:
    tokens containing placeholders (``<file>``, ``<id>``) are likewise
    reported as skipped, not failed.
 
+3. Worked-example schemas.
+   The three shipped examples must retain their section-scoped fenced
+   artifacts and required fields. These are structure-only checks of
+   synthetic material, not proof of outcomes, authorization, or live hosts.
+   The exact checks and limitations are in docs/worked-example-schema.md.
+
 Exit code is 0 when every check passes, 1 otherwise. Output is concise and
 names every offending reference (file, line, and token) on failure.
 
@@ -66,6 +72,8 @@ import hashlib
 import os
 import re
 import sys
+
+from worked_examples import check_worked_examples
 
 # Directories and files that are not part of the shipped template layout and
 # must not affect the contents-tree comparison.
@@ -242,7 +250,7 @@ def check_references(root: str, files: list[str]) -> dict:
 
 # --- Adopted-repository readiness mode (--adopted) -----------------------
 #
-# The checks below answer a different question from the two above: *has a
+# The checks below answer a different question from the template checks: *has a
 # repository that adopted this template completed the quickstart's
 # bootstrap outputs, and are they internally consistent?* They prove
 # existence and internal consistency only. The external gates — ruleset
@@ -497,7 +505,7 @@ def adopted_checks(root: str) -> list[tuple[str, bool, list[str]]]:
 
 
 def parse_args() -> argparse.Namespace:
-    """Parse the command line; plain mode is the default and unchanged."""
+    """Parse the command line; adopted mode remains separate from plain mode."""
     parser = argparse.ArgumentParser(
         description=(
             "Structural self-validation for the template itself, or "
@@ -546,7 +554,7 @@ def main() -> int:
     readme_text = read_text(readme_path)
 
     # Check 1: README contents tree vs the working tree.
-    print("[1/2] README 'Repository contents' tree vs working tree")
+    print("[1/3] README 'Repository contents' tree vs working tree")
     tree = parse_contents_tree(readme_text)
     tree_failures: list[str] = []
     if tree is None:
@@ -577,7 +585,7 @@ def main() -> int:
     print()
 
     # Check 2: internal file references in markdown.
-    print("[2/2] Internal file references in *.md (inline code spans)")
+    print("[2/3] Internal file references in *.md (inline code spans)")
     refs = check_references(root, files)
     print(f"  markdown files scanned: {refs['files_scanned']}")
     print(f"  inline code spans seen: {refs['spans_seen']}")
@@ -591,9 +599,21 @@ def main() -> int:
         print("  PASS: every checked reference resolves on disk")
     print()
 
-    failed = bool(tree_failures) or bool(refs["failures"])
-    checks_passed = 2 - (1 if tree_failures else 0) - (1 if refs["failures"] else 0)
-    print(f"RESULT: {'FAIL' if failed else 'PASS'} ({checks_passed}/2 checks passed)")
+    # Check 3: shape of the shipped synthetic examples, never their truth.
+    print("[3/3] Worked-example schemas (structure only; synthetic, not live evidence)")
+    example_failures = check_worked_examples(root)
+    if example_failures:
+        for problem in example_failures:
+            print(f"  FAIL: {problem}")
+    else:
+        print("  PASS: all three examples have the required structured artifacts")
+    print()
+
+    failed_checks = sum(bool(problems) for problems in
+                        (tree_failures, refs["failures"], example_failures))
+    failed = failed_checks > 0
+    checks_passed = 3 - failed_checks
+    print(f"RESULT: {'FAIL' if failed else 'PASS'} ({checks_passed}/3 checks passed)")
     return 1 if failed else 0
 
 

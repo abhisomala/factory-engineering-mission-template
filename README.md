@@ -423,12 +423,15 @@ docs/linear-workflow.md
 docs/architecture.md
 docs/maturity.md                    honest proven-vs-unproven self-assessment
 docs/mission-plan.md                v0.1 development mission plan and status
+docs/worked-example-schema.md       structural checks and synthetic-evidence limits
 examples/example-linear-queue.md
 examples/example-daily-report.md
 examples/worked-example.md
 examples/worked-r3-example.md
 examples/worked-host-validation.md
 scripts/validate.py                structural self-check (stdlib only)
+scripts/worked_examples.py         schemas for the three synthetic worked examples
+scripts/test_validate.py           isolated offline validator regressions (stdlib only)
 agent_reports/2026-10-22.md        Day 1 + Day 2 daily reports (the template's own development record)
 ```
 
@@ -440,11 +443,21 @@ Run the structural self-check from the repository root:
 python3 scripts/validate.py
 ```
 
-It exits 0 when the README contents tree matches the working tree and
-every internal file reference resolves, and non-zero (naming the offending
-references) otherwise. It uses only the Python standard library and never
-touches the network. What is proven versus still unproven about this
-template is recorded in `docs/maturity.md`.
+It exits 0 when the README contents tree matches the working tree, every
+checked internal file reference resolves, and the three synthetic worked
+examples have their required structured artifacts. Otherwise it exits
+non-zero and names the failures. These are **structure-only** checks:
+filled fields do not prove outcomes, valid authorization, or live-host
+evidence. The exact scope and limitations are in
+`docs/worked-example-schema.md`. It uses only the Python standard library
+and never touches the network. What is proven versus still unproven about
+this template is recorded in `docs/maturity.md`.
+
+Run the isolated positive and negative validator regressions with:
+
+```text
+python3 scripts/test_validate.py
+```
 
 If you have **adopted** the template (quickstart steps 1–4 complete),
 also run the adopted-repo check:
