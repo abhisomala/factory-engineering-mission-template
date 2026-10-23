@@ -6,7 +6,7 @@ of the agents that use it. It is a status record, not marketing, and it is
 kept short on purpose. Treat `PROVEN` as "best evidence so far", not as a
 guarantee.
 
-As of: 2026-10-22.
+As of: 2026-10-23.
 
 ## Proven
 
@@ -19,10 +19,14 @@ As of: 2026-10-22.
   pre-publication copy was reviewed end to end by a reviewer who did not
   author it; the 16 findings from that review were fixed before release.
 - **Structurally self-checked.** `scripts/validate.py` verifies that the
-  README contents tree matches the working tree and that internal file
-  references resolve. It runs on this repository with no false positives.
-  Its own passing and failing behavior is exercised by a negative test
-  (a deliberately broken scratch copy) recorded in the Day 1 report.
+  README contents tree matches the working tree, that internal file
+  references resolve, and — since 2026-10-23 (PR #11) — that the three
+  shipped worked examples keep their required structured artifacts. It
+  runs on this repository with no false positives. Its passing and
+  failing behavior is exercised by a deliberately broken scratch copy
+  (Day 1 report) and, since 2026-10-23, by 26 offline regressions
+  (`scripts/test_validate.py`, PR #11) covering both modes, the original
+  gates, and every required example field.
 - **Exercised its own R2 conditional-merge path.** The readiness check
   (`scripts/validate.py --adopted` plus `templates/readiness-checklist.md`)
   went through the complete process this template prescribes for
@@ -30,7 +34,11 @@ As of: 2026-10-22.
   reviewed by another (conditions 1–6 reproduced; condition 7 caught the
   checklist overclaiming what the code checks), corrected, re-reviewed
   to APPROVE, and merged — the full trail visible in PR #5 and the Day 2
-  report (`agent_reports/2026-10-22.md`).
+  report (`agent_reports/2026-10-22.md`). The same path was walked a
+  second time for the worked-example schema checks (PR #11,
+  2026-10-23): authored by one session, independently reviewed to
+  APPROVE by another with all seven conditions re-derived (including
+  adversarial mutation and sabotage probes), then merged.
 
 ## Unproven
 
@@ -46,9 +54,13 @@ As of: 2026-10-22.
 - **Continuous integration.** There is no CI pipeline yet; the
   self-validation script is run by hand, so nothing enforces that it stays
   green on every change.
-- **End-to-end worked example.** The example queue and the example daily
-  report are illustrative. They have not been walked through
-  end to end against a live tracker and a real host-validation window.
+- **End-to-end worked example.** Three worked examples have shipped
+  since 2026-10-23 (PR #8: an R1+R2 lifecycle pair, an R3 authorization,
+  a host-validation item), and their structure is machine-checked
+  (PR #11) — but all three are synthetic by construction, and the
+  checks prove shape, not outcomes. Nothing has been walked through
+  end to end against a live tracker and a real host-validation window;
+  the example queue and the example daily report remain illustrative.
 
 ## How to read this
 
