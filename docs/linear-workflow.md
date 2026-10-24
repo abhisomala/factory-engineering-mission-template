@@ -26,6 +26,10 @@ instructs.
 - **One issue = one bounded task** with the task contract attached
   (inline or linked). Big work becomes a Mission: an epic with
   worker-sized children.
+- **The issue body has a canonical shape**: `templates/tracker-issue.md`
+  — title convention, task, risk tier, dependency label, execution
+  environment, contract slot, acceptance evidence, state, stop
+  conditions, and the safe parallel work if blocked.
 - **Issue states map to the lifecycle**: `Todo` (READY) → `In Progress`
   (LEASED, one writer) → `In Review` → `Done`. `Blocked` is a first-class
   state, always with the unblocking condition named.

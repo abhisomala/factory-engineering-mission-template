@@ -10,7 +10,7 @@ listed here because they are not shipped in the template; this
 repository's own development record under `agent_reports/` is shipped
 and is listed.
 
-As of: 2026-10-24 — 45 shipped files (verify with `git ls-files`).
+As of: 2026-10-24 — 47 shipped files (verify with `git ls-files`).
 Update this file in the same change that adds or removes a shipped
 file; every path below must resolve (the validator's reference check
 enforces that mechanically).
@@ -22,6 +22,7 @@ enforces that mechanically).
 | `LICENSE` | MIT license, copyright the template's contributors. |
 | `.gitignore` | Keeps secrets, env files, logs, and local artifacts out; raw host artifacts stay on the host where they were produced. |
 | `.github/workflows/validate.yml` | CI: runs the structural self-validation and its regression suite on ubuntu-latest and macos-latest for every push to main and every pull request. |
+| `.github/pull_request_template.md` | The PR body GitHub pre-fills: Changed, Evidence, Risk, proven-vs-unproven, Next, and the gate checklist (independent review for R2, authorization for R3, no secrets). |
 | `.factory/droids/engineering-manager.md` | The orchestrator (Engineering Manager) droid: operating model, seven-step loop, truthful reporting, hard boundaries. |
 | `.factory/skills/independent-review/SKILL.md` | The R2 conditional-merge gate: seven conditions with verification steps, three verdicts, required output format. |
 | `.factory/skills/host-validation/SKILL.md` | The host-evidence workflow: queue rules, request format, result recording, host status vocabulary. |
@@ -30,6 +31,7 @@ enforces that mechanically).
 | `templates/mission-approval-prompt.md` | One-screen founder decision request: bounded options, a recommendation, and exactly what happens after approval. |
 | `templates/founder-dependency-reduction-prompt.md` | The audit's output format: inventory of waits, per-item reduction proposals, and the guardrails section. |
 | `templates/task-contract.md` | The contract written before any substantial task; the review anchor that acceptance evidence is judged against. |
+| `templates/tracker-issue.md` | The canonical tracker-issue body: title convention, task, risk tier, dependency label, execution environment, contract slot, acceptance evidence, state, stop conditions. |
 | `templates/worker-handoff.md` | The checkpoint handoff a worker writes before stopping, for a reviewer or successor who was not present. |
 | `templates/readiness-checklist.md` | Adoption readiness: what the adopted-mode machine check proves, and the external human gates it cannot. |
 | `templates/agent_handoff-skeleton/00_README.md` | Day-one starter for the bundle index: as-of anchor, precedence, read order, resumability test. |
