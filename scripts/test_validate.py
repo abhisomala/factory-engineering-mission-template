@@ -513,6 +513,56 @@ class ValidatorRegression(unittest.TestCase):
         finally:
             probe.unlink()
 
+    # --- Markdown lint (scripts/md_lint.py) -------------------------------
+
+    def md_cli(self):
+        result = subprocess.run(
+            [sys.executable, str(self.root / "scripts/md_lint.py")],
+            cwd=self.root, capture_output=True, text=True, timeout=15,
+        )
+        # Not masking the fixture path: the lint must never print one.
+        self.assertEqual(result.stderr, "")
+        return result.returncode, result.stdout
+
+    def test_md_lint_clean_on_the_registered_snapshot(self):
+        code, output = self.md_cli()
+        self.assertEqual(code, 0, output)
+        self.assertIn("RESULT: CLEAN", output)
+        self.assertNotIn(str(self.root), output)
+
+    def test_md_lint_flags_each_structural_violation(self):
+        violations = {
+            "unclosed fenced code block": "# Title\n\n```text\nunclosed\n",
+            "heading level jump": "# Title\n\n### Skipped a level\n",
+            "trailing whitespace": "# Title\n\n- item with trailing space   \n",
+            "missing final newline": "# Title\n\n- no final newline",
+            "trailing blank line(s)": "# Title\n\n- ends with blanks\n\n\n",
+            "H1 headings (expected 1)": "# One\n\n# Two\n",
+            "no H1 heading": "## Only H2\n\nbody\n",
+        }
+        original = self.text("docs/maturity.md")
+        try:
+            for diagnostic, snippet in violations.items():
+                with self.subTest(diagnostic=diagnostic):
+                    self.write("docs/maturity.md", snippet)
+                    code, output = self.md_cli()
+                    self.assertEqual(code, 1, output)
+                    self.assertIn(diagnostic, output)
+        finally:
+            self.write("docs/maturity.md", original)
+
+    def test_md_lint_agent_reports_may_stack_day_sections(self):
+        # Documented exemption: dated records can carry one H1 per day
+        # section; the same shape elsewhere fails (see the violation test).
+        probe = self.root / "agent_reports" / "scratch-days.md"
+        probe.write_text("# Day A\n\n- one\n\n# Day B\n\n- two\n")
+        try:
+            code, output = self.md_cli()
+            self.assertEqual(code, 0, output)
+            self.assertIn("RESULT: CLEAN", output)
+        finally:
+            probe.unlink()
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

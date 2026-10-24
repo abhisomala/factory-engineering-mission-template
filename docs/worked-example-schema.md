@@ -68,6 +68,19 @@ review, and actual host-validation process.
 not run the worked-example schema or certify the external readiness gates.
 Neither mode replaces human review.
 
+## Authoring your own synthetic material
+
+The plain-mode reference check scans prose backtick spans in every
+markdown file, examples included. A span that looks like a
+repo-relative path is tolerated only in two shapes: a documented
+runtime prefix (`docs/agent_handoff/`, `human_tests/`, `agent_reports/`
+— reported as runtime, never failed), or a first segment that is not a
+top-level entry in the repository (the shipped examples' synthetic
+project paths rely on this). A fictitious span that borrows a real
+top-level first segment (for example `docs/`) is checked and fails if
+the file does not exist. This is a shape rule for authored prose, not
+a privacy or permission check.
+
 ## Repeatable regressions
 
 ```text
