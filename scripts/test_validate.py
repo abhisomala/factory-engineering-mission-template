@@ -381,6 +381,105 @@ class ValidatorRegression(unittest.TestCase):
         self.assertEqual(code, 1, output)
         self.assertIn("MANIFEST.md lists itself", output)
 
+    # --- Privacy scan (scripts/privacy_scan.py) --------------------------
+
+    def privacy_cli(self):
+        result = subprocess.run(
+            [sys.executable, str(self.root / "scripts/privacy_scan.py")],
+            cwd=self.root, capture_output=True, text=True, timeout=15,
+        )
+        output = result.stdout.replace(str(self.root), "<fixture>")
+        self.assertEqual(result.stderr.replace(str(self.root), "<fixture>"), "")
+        return result.returncode, output
+
+    def test_privacy_scan_clean_on_the_registered_snapshot(self):
+        code, output = self.privacy_cli()
+        self.assertEqual(code, 0, output)
+        self.assertIn("RESULT: CLEAN", output)
+
+    def test_privacy_scan_catches_planted_service_tokens(self):
+        # Values are assembled at runtime so this suite never ships a
+        # literal that the scanner itself would flag.
+        plants = [
+            "gh" + "p" + "_" + "1" * 36,
+            "github_pat_" + "2" * 36,
+            "sk" + "-" + "3" * 40,
+            "xox" + "b-" + "4" * 24,
+            "AKIA" + "5" * 16,
+        ]
+        for token in plants:
+            with self.subTest(prefix=token[:3]):
+                probe = self.root / "scratch-probe.md"
+                probe.write_text(f"probe note\n\nmentions {token} inline\n")
+                try:
+                    code, output = self.privacy_cli()
+                    self.assertEqual(code, 1, output)
+                    self.assertIn("service-token", output)
+                    self.assertIn("scratch-probe.md", output)
+                    self.assertNotIn(token, output)
+                finally:
+                    probe.unlink()
+
+    def test_privacy_scan_catches_planted_assignment_and_key_block(self):
+        value = "s" * 6 + "e" * 10
+        pem = "-----BEGIN " + "RSA PRIVATE KEY" + "-----"
+        probe = self.root / "scratch-probe.md"
+        probe.write_text(
+            f"# probe\n\n- token: {value}\n\n```text\n{pem}\nmiI...\n```\n"
+        )
+        try:
+            code, output = self.privacy_cli()
+            self.assertEqual(code, 1, output)
+            self.assertIn("credential assignment", output)
+            self.assertIn("private-key block", output)
+            self.assertNotIn(value, output)
+        finally:
+            probe.unlink()
+
+    def test_privacy_scan_catches_planted_email_and_home_path(self):
+        email = "per" + "son@" + "somewhere" + ".org"
+        home = "/Users/" + "someuser" + "/notes.txt"
+        probe = self.root / "scratch-probe.md"
+        probe.write_text(f"- contact: {email}\n- capture: {home}\n")
+        try:
+            code, output = self.privacy_cli()
+            self.assertEqual(code, 1, output)
+            self.assertIn("email address", output)
+            self.assertIn("absolute home path", output)
+            self.assertNotIn(email, output)
+            self.assertNotIn(home, output)
+        finally:
+            probe.unlink()
+
+    def test_privacy_scan_tolerates_documented_placeholders(self):
+        probe = self.root / "scratch-probe.md"
+        probe.write_text(
+            "- token: <value>\n"
+            "- API key: [REDACTED]\n"
+            "- contact: user@example.com\n"
+            "- github bot: 138933559+factory-droid[bot]@users.noreply.github.com\n"
+            "- path: /Users/<you>/repo\n"
+            '- printf "password=%s" "$value"\n'
+        )
+        try:
+            code, output = self.privacy_cli()
+            self.assertEqual(code, 0, output)
+            self.assertIn("RESULT: CLEAN", output)
+        finally:
+            probe.unlink()
+
+    def test_privacy_scan_includes_runtime_record_directories(self):
+        token = "gh" + "r" + "_" + "6" * 36
+        probe = self.root / "agent_reports" / "scratch.md"
+        probe.write_text(f"day note\n\nsaw {token}\n")
+        try:
+            code, output = self.privacy_cli()
+            self.assertEqual(code, 1, output)
+            self.assertIn("service-token", output)
+            self.assertIn("agent_reports/scratch.md", output)
+        finally:
+            probe.unlink()
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

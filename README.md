@@ -434,6 +434,7 @@ examples/worked-host-validation.md
 scripts/validate.py                structural self-check (stdlib only)
 scripts/worked_examples.py         schemas for the three synthetic worked examples
 scripts/test_validate.py           isolated offline validator regressions (stdlib only)
+scripts/privacy_scan.py            secret-shape and private-identifier scan (stdlib only)
 agent_reports/2026-10-22.md        Day 1 + Day 2 daily reports (the template's own development record)
 agent_reports/2026-10-23.md        Day 3 daily report
 ```
