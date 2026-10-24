@@ -279,6 +279,15 @@ class ValidatorRegression(unittest.TestCase):
         self.assertEqual(code, 1, output)
         self.assertIn("FAIL: no '## Repository contents' fenced block", output)
 
+    def test_worktree_git_file_is_not_an_unregistered_file(self):
+        # Day 2 addendum: in a git worktree, .git is a FILE (gitdir pointer),
+        # and it must not be reported as an unregistered repository file.
+        (self.root / ".git").write_text("gitdir: /tmp/elsewhere/main/.git\n")
+        code, output = self.cli()
+        self.assertEqual(code, 0, output)
+        self.assertIn("PASS: tree matches disk exactly", output)
+        self.assertNotIn(".git", output)
+
     def test_old_reference_check_rejects_broken_prose_reference(self):
         self.write("README.md", self.text("README.md") + "\nMissing: `docs/absent.md`.\n")
         code, output = self.cli()

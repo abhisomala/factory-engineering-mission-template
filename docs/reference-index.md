@@ -10,7 +10,7 @@ listed here because they are not shipped in the template; this
 repository's own development record under `agent_reports/` is shipped
 and is listed.
 
-As of: 2026-10-23 — 41 shipped files (verify with `git ls-files`).
+As of: 2026-10-24 — 43 shipped files (verify with `git ls-files`).
 Update this file in the same change that adds or removes a shipped
 file; every path below must resolve (the validator's reference check
 enforces that mechanically).
@@ -21,6 +21,7 @@ enforces that mechanically).
 | `README.md` | The front door: the problem, fit and non-fit, the five-step quickstart, contents tree, verifying your copy, customizing. |
 | `LICENSE` | MIT license, copyright the template's contributors. |
 | `.gitignore` | Keeps secrets, env files, logs, and local artifacts out; raw host artifacts stay on the host where they were produced. |
+| `.github/workflows/validate.yml` | CI: runs the structural self-validation and its regression suite on ubuntu-latest and macos-latest for every push to main and every pull request. |
 | `.factory/droids/engineering-manager.md` | The orchestrator (Engineering Manager) droid: operating model, seven-step loop, truthful reporting, hard boundaries. |
 | `.factory/skills/independent-review/SKILL.md` | The R2 conditional-merge gate: seven conditions with verification steps, three verdicts, required output format. |
 | `.factory/skills/host-validation/SKILL.md` | The host-evidence workflow: queue rules, request format, result recording, host status vocabulary. |
@@ -58,3 +59,4 @@ enforces that mechanically).
 | `scripts/worked_examples.py` | The narrow, structure-only schemas behind the third validator check; reads the three examples and nothing else. |
 | `scripts/test_validate.py` | Twenty-six offline validator regressions in disposable copies: positives, mutated fields, broken gates, adopted modes. |
 | `agent_reports/2026-10-22.md` | Day 1 and Day 2 development record: cold-start test, snag table, exact validation runs. |
+| `agent_reports/2026-10-23.md` | Day 3 development record: the automation failure and resumption, the PR #11 review arc, format-gap dispositions. |

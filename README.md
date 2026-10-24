@@ -397,6 +397,7 @@ tracker issue (task contract + evidence bar)
 AGENTS.md                          compact, always-on governance
 LICENSE                            MIT
 .gitignore                         keeps secrets and logs out; raw artifacts stay on the host
+.github/workflows/validate.yml     CI: validator + regressions on ubuntu and macos runners
 .factory/droids/engineering-manager.md    mission orchestrator
 .factory/skills/independent-review/SKILL.md
 .factory/skills/host-validation/SKILL.md
