@@ -24,3 +24,5 @@ jobs:
         run: python3 scripts/validate.py
       - name: Validator regressions
         run: python3 scripts/test_validate.py
+      - name: Privacy scan
+        run: python3 scripts/privacy_scan.py
