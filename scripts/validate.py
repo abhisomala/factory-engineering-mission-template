@@ -76,7 +76,8 @@ import sys
 from worked_examples import check_worked_examples
 
 # Directories and files that are not part of the shipped template layout and
-# must not affect the contents-tree comparison.
+# must not affect the contents-tree comparison. In a git worktree, `.git` is
+# a file rather than a directory, so IGNORED_DIRS alone does not exclude it.
 IGNORED_DIRS = {
     ".git",
     "__pycache__",
@@ -87,7 +88,7 @@ IGNORED_DIRS = {
     ".pytest_cache",
     ".ruff_cache",
 }
-IGNORED_FILES = {".DS_Store", "Thumbs.db"}
+IGNORED_FILES = {".git", ".DS_Store", "Thumbs.db"}
 IGNORED_SUFFIXES = (".pyc", ".log")
 
 # Extensions that make a backtick token a checkable file reference.
