@@ -398,6 +398,7 @@ AGENTS.md                          compact, always-on governance
 LICENSE                            MIT
 .gitignore                         keeps secrets and logs out; raw artifacts stay on the host
 .github/workflows/validate.yml     CI: validator + regressions on ubuntu and macos runners
+.github/pull_request_template.md   enforces Changed / Evidence / Risk / proven-vs-unproven reporting
 .factory/droids/engineering-manager.md    mission orchestrator
 .factory/skills/independent-review/SKILL.md
 .factory/skills/host-validation/SKILL.md
@@ -406,6 +407,7 @@ templates/mission-start-prompt.md
 templates/mission-approval-prompt.md
 templates/founder-dependency-reduction-prompt.md
 templates/task-contract.md
+templates/tracker-issue.md         canonical tracker-issue body (contract, evidence bar, labels, stop conditions)
 templates/worker-handoff.md
 templates/readiness-checklist.md     adopted-repo readiness (machine + human checks)
 templates/agent_handoff-skeleton/00_README.md   day-one bundle starter
