@@ -617,6 +617,71 @@ class ValidatorRegression(unittest.TestCase):
         finally:
             probe.unlink()
 
+    # --- One-command check runner (scripts/check.py) -----------------------
+
+    def stub_check(self, script, code, message):
+        """Replace one sub-check with a fixed-exit stub.
+
+        These tests are about the RUNNER's behavior (aggregation, exit-code
+        propagation, error reporting), not about re-running the whole suite:
+        the fixture's own test_validate.py would otherwise invoke check.py,
+        which invokes this suite again — unbounded recursion. The real
+        sub-checks are exercised by their own tests and by the top-level
+        `python3 scripts/check.py` run recorded in the PR evidence, so
+        stubbing the inner invocation here narrows nothing about the
+        runner's contract.
+        """
+        self.write(script, f"import sys\nprint({message!r})\nsys.exit({code})\n")
+
+    def check_cli(self):
+        result = subprocess.run(
+            [sys.executable, str(self.root / "scripts/check.py")],
+            cwd=self.root, capture_output=True, text=True, timeout=120,
+        )
+        output = (result.stdout + result.stderr).replace(str(self.root), "<fixture>")
+        return result.returncode, output
+
+    def test_check_runner_passes_on_the_registered_snapshot(self):
+        self.stub_check("scripts/test_validate.py", 0, "stub: regressions ok")
+        code, output = self.check_cli()
+        self.assertEqual(code, 0, output)
+        self.assertIn("RESULT: PASS (4/4 checks passed)", output)
+        for label in ("structural self-validation", "validator regressions",
+                      "privacy scan", "markdown lint"):
+            self.assertIn(label, output)
+        self.assertNotIn(str(self.root), output)
+
+    def test_check_runner_propagates_a_failing_sub_check(self):
+        # The runner must never turn a failure into a pass, and must keep
+        # running the other checks so one pass shows every failure.
+        self.stub_check("scripts/test_validate.py", 0, "stub: regressions ok")
+        self.write("docs/maturity.md", "# Title\n\n- trailing space   \n")
+        code, output = self.check_cli()
+        self.assertEqual(code, 1, output)
+        self.assertIn("RESULT: FAIL", output)
+        self.assertIn("FAIL: markdown lint", output)
+        self.assertIn("PASS: structural self-validation", output)
+        self.assertIn("PASS: privacy scan", output)
+
+    def test_check_runner_reports_an_unrunnable_check_as_error(self):
+        # A check that cannot run is ERROR, never a silent skip or a pass.
+        self.stub_check("scripts/test_validate.py", 0, "stub: regressions ok")
+        (self.root / "scripts" / "md_lint.py").unlink()
+        code, output = self.check_cli()
+        self.assertEqual(code, 1, output)
+        self.assertIn("ERROR: markdown lint", output)
+        self.assertIn("RESULT: FAIL", output)
+        self.assertNotIn("RESULT: PASS", output)
+
+    def test_check_runner_propagates_a_nonzero_sub_check_exit(self):
+        # A sub-check that fails for its own reasons must fail the run even
+        # when nothing else is wrong.
+        self.stub_check("scripts/test_validate.py", 3, "stub: three failures")
+        code, output = self.check_cli()
+        self.assertEqual(code, 1, output)
+        self.assertIn("FAIL: validator regressions", output)
+        self.assertIn("RESULT: FAIL (1/4", output)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -10,7 +10,7 @@ listed here because they are not shipped in the template; this
 repository's own development record under `agent_reports/` is shipped
 and is listed.
 
-As of: 2026-10-24 — 47 shipped files (verify with `git ls-files`).
+As of: 2026-10-24 — 48 shipped files (verify with `git ls-files`).
 Update this file in the same change that adds or removes a shipped
 file; every path below must resolve (the validator's reference check
 enforces that mechanically).
@@ -62,5 +62,6 @@ enforces that mechanically).
 | `scripts/test_validate.py` | Offline validator regressions in disposable copies: both validator modes, mutated fields, broken gates, planted privacy tokens. |
 | `scripts/privacy_scan.py` | Secret-shape and private-identifier scan over every committable file; planted-token self-tests pin its rule set and its redaction. |
 | `scripts/md_lint.py` | Structural markdown lint: fence balance, heading hierarchy, one H1 per file, trailing whitespace, final newline — with self-tests. |
+| `scripts/check.py` | One command that runs all four checks (validation, regressions, privacy scan, markdown lint), prints each result, and fails if any did not pass. |
 | `agent_reports/2026-10-22.md` | Day 1 and Day 2 development record: cold-start test, snag table, exact validation runs. |
 | `agent_reports/2026-10-23.md` | Day 3 development record: the automation failure and resumption, the PR #11 review arc, format-gap dispositions. |
