@@ -85,8 +85,33 @@ RULES: list[tuple[str, re.Pattern[str]]] = (
 
 
 def redact(match: str) -> str:
-    """Never echo a full match; show only a short prefix and length."""
-    return f"{match[:6]}… ({len(match)} chars)"
+    """Never echo a full match: show only a short prefix and length.
+
+    The prefix is always shorter than the match, so even the shortest
+    accepted email shape (6 characters) is only partially shown.
+    """
+    prefix = match[:4] if len(match) > 4 else match[:1]
+    return f"{prefix}… ({len(match)} chars)"
+
+
+def is_exempt_email(match_text: str) -> bool:
+    """Documented placeholder tolerance for email-shaped matches."""
+    return any(exempt in match_text.lower() for exempt in EMAIL_EXEMPT_SUBSTRINGS)
+
+
+def sanitize_display(text: str) -> str:
+    """Redact rule-shaped content in anything displayed, paths included.
+
+    A secret-shaped *filename* must not leak through a finding's path
+    even when the finding itself is redacted.
+    """
+    for name, pattern in RULES:
+        def _redact_or_keep(match: re.Match[str], _name=name) -> str:
+            if _name == EMAIL_RULE[0] and is_exempt_email(match.group(0)):
+                return match.group(0)
+            return redact(match.group(0))
+        text = pattern.sub(_redact_or_keep, text)
+    return text
 
 
 def scan_text(rel: str, text: str) -> list[tuple[int, str, str]]:
@@ -95,10 +120,7 @@ def scan_text(rel: str, text: str) -> list[tuple[int, str, str]]:
     for index, line in enumerate(text.splitlines(), start=1):
         for name, pattern in RULES:
             for match in pattern.finditer(line):
-                if name == EMAIL_RULE[0] and any(
-                    exempt in match.group(0).lower()
-                    for exempt in EMAIL_EXEMPT_SUBSTRINGS
-                ):
+                if name == EMAIL_RULE[0] and is_exempt_email(match.group(0)):
                     continue
                 findings.append((index, name, redact(match.group(0))))
     return findings
@@ -117,18 +139,24 @@ def scan_repository(root: str) -> tuple[list[str], int, int]:
             skipped_binary += 1
             continue
         except OSError as error:
-            findings.append(f"{rel}: unreadable ({error.__class__.__name__})")
+            findings.append(
+                f"unreadable: {sanitize_display(rel)} ({error.__class__.__name__})"
+            )
             continue
         scanned += 1
         for line, name, finding in scan_text(rel, text):
-            findings.append(f"{name} {rel}:{line} {finding}")
+            findings.append(
+                f"{name} {sanitize_display(rel)}:{line} {finding}"
+            )
     return findings, scanned, skipped_binary
 
 
 def main() -> int:
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     print("privacy_scan.py - secret-shape and private-identifier scan")
-    print(f"repo root: {root}")
+    # The absolute host path is deliberately not printed: printing it
+    # would leak exactly the identifier class this scanner guards.
+    print("repo root: (absolute path omitted)")
     print()
     findings, scanned, skipped_binary = scan_repository(root)
     print(f"files scanned: {scanned} (text); skipped as binary: {skipped_binary}")
@@ -137,7 +165,8 @@ def main() -> int:
     print()
     if findings:
         print(f"RESULT: FINDINGS ({len(findings)})")
-        print("redacted prefixes only; the full matches are never printed")
+        print("redacted prefixes and sanitized paths only; full matches are"
+              " never printed")
         return 1
     print("RESULT: CLEAN (0 findings)")
     print("a clean run means the rule set below found nothing; it is not a"

@@ -388,14 +388,47 @@ class ValidatorRegression(unittest.TestCase):
             [sys.executable, str(self.root / "scripts/privacy_scan.py")],
             cwd=self.root, capture_output=True, text=True, timeout=15,
         )
-        output = result.stdout.replace(str(self.root), "<fixture>")
-        self.assertEqual(result.stderr.replace(str(self.root), "<fixture>"), "")
-        return result.returncode, output
+        # Deliberately NOT masking the fixture path in stdout: the
+        # scanner must never print an absolute host path itself, and
+        # these tests must be able to catch it if it regresses.
+        self.assertEqual(result.stderr, "")
+        return result.returncode, result.stdout
 
     def test_privacy_scan_clean_on_the_registered_snapshot(self):
         code, output = self.privacy_cli()
         self.assertEqual(code, 0, output)
         self.assertIn("RESULT: CLEAN", output)
+        self.assertNotIn(str(self.root), output)
+        self.assertNotIn("/Users/", output)
+        self.assertNotIn("/home/", output)
+
+    def test_privacy_scan_redaction_conceals_short_matches(self):
+        # PR #16 review finding 1: even the shortest accepted email shape
+        # must never be echoed in full.
+        email = "a" + "@" + "b" + ".co"
+        probe = self.root / "scratch-probe.md"
+        probe.write_text(f"- contact: {email}\n")
+        try:
+            code, output = self.privacy_cli()
+            self.assertEqual(code, 1, output)
+            self.assertIn("email address", output)
+            self.assertNotIn(email, output)
+        finally:
+            probe.unlink()
+
+    def test_privacy_scan_redacts_secret_shaped_filenames(self):
+        # PR #16 review finding 2: a secret-shaped FILENAME must not leak
+        # through the finding's path even when the finding is redacted.
+        token = "gh" + "o" + "_" + "7" * 36
+        probe = self.root / f"note-{token}.md"
+        probe.write_text(f"note\n\ncontains {token} too\n")
+        try:
+            code, output = self.privacy_cli()
+            self.assertEqual(code, 1, output)
+            self.assertIn("service-token", output)
+            self.assertNotIn(token, output)
+        finally:
+            probe.unlink()
 
     def test_privacy_scan_catches_planted_service_tokens(self):
         # Values are assembled at runtime so this suite never ships a
