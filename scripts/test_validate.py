@@ -513,6 +513,110 @@ class ValidatorRegression(unittest.TestCase):
         finally:
             probe.unlink()
 
+    # --- Markdown lint (scripts/md_lint.py) -------------------------------
+
+    def md_cli(self):
+        result = subprocess.run(
+            [sys.executable, str(self.root / "scripts/md_lint.py")],
+            cwd=self.root, capture_output=True, text=True, timeout=15,
+        )
+        # Not masking the fixture path: the lint must never print one.
+        self.assertEqual(result.stderr, "")
+        return result.returncode, result.stdout
+
+    def test_md_lint_clean_on_the_registered_snapshot(self):
+        code, output = self.md_cli()
+        self.assertEqual(code, 0, output)
+        self.assertIn("RESULT: CLEAN", output)
+        self.assertNotIn(str(self.root), output)
+
+    def test_md_lint_flags_each_structural_violation(self):
+        violations = {
+            "unclosed fenced code block": "# Title\n\n```text\nunclosed\n",
+            "heading level jump": "# Title\n\n### Skipped a level\n",
+            "trailing whitespace": "# Title\n\n- item with trailing space   \n",
+            "missing final newline": "# Title\n\n- no final newline",
+            "trailing blank line(s)": "# Title\n\n- ends with blanks\n\n\n",
+            "H1 headings (expected 1)": "# One\n\n# Two\n",
+            "no H1 heading": "## Only H2\n\nbody\n",
+        }
+        original = self.text("docs/maturity.md")
+        try:
+            for diagnostic, snippet in violations.items():
+                with self.subTest(diagnostic=diagnostic):
+                    self.write("docs/maturity.md", snippet)
+                    code, output = self.md_cli()
+                    self.assertEqual(code, 1, output)
+                    self.assertIn(diagnostic, output)
+        finally:
+            self.write("docs/maturity.md", original)
+
+    def test_md_lint_agent_reports_may_stack_day_sections(self):
+        # Documented exemption: dated records can carry one H1 per day
+        # section; the same shape elsewhere fails (see the violation test).
+        probe = self.root / "agent_reports" / "scratch-days.md"
+        probe.write_text("# Day A\n\n- one\n\n# Day B\n\n- two\n")
+        try:
+            code, output = self.md_cli()
+            self.assertEqual(code, 0, output)
+            self.assertIn("RESULT: CLEAN", output)
+        finally:
+            probe.unlink()
+
+    def test_md_lint_fence_matching_requires_a_matching_closer(self):
+        # PR #17 review finding 1: a fence closes only on the same
+        # character, at least the same length, with nothing after it.
+        original = self.text("docs/maturity.md")
+        try:
+            for snippet in (
+                "# Title\n\n```text\nbody\n~~~\n",       # other character
+                "# Title\n\n```text\nbody\n```junk\n",   # trailing text
+                "# Title\n\n````\nbody\n```\n",          # shorter run
+            ):
+                with self.subTest(snippet=snippet):
+                    self.write("docs/maturity.md", snippet)
+                    code, output = self.md_cli()
+                    self.assertEqual(code, 1, output)
+                    self.assertIn("unclosed fenced code block", output)
+            # A valid four-backtick block may contain three-backtick
+            # examples without ending early or inventing prose findings.
+            self.write(
+                "docs/maturity.md",
+                "# Title\n\n````\n```text\nexample\n```\n````\n",
+            )
+            code, output = self.md_cli()
+            self.assertEqual(code, 0, output)
+            self.assertIn("RESULT: CLEAN", output)
+        finally:
+            self.write("docs/maturity.md", original)
+
+    def test_md_lint_requires_an_h1_even_under_agent_reports(self):
+        # PR #17 review finding 2: the report exemption covers stacked
+        # day headings, not the absence of a title.
+        probe = self.root / "agent_reports" / "scratch-headingless.md"
+        probe.write_text("body without H1\n")
+        try:
+            code, output = self.md_cli()
+            self.assertEqual(code, 1, output)
+            self.assertIn("no H1 heading", output)
+        finally:
+            probe.unlink()
+
+    def test_md_lint_redacts_secret_shaped_filenames(self):
+        # PR #17 review finding 3: a finding must never echo a filename
+        # that carries a secret-shaped identifier (the privacy scan
+        # cannot see identifiers that live only in a filename).
+        token = "gh" + "s" + "_" + "5" * 36
+        probe = self.root / f"note-{token}.md"
+        probe.write_text("# Title\n\n- trailing space   \n")
+        try:
+            code, output = self.md_cli()
+            self.assertEqual(code, 1, output)
+            self.assertIn("trailing whitespace", output)
+            self.assertNotIn(token, output)
+        finally:
+            probe.unlink()
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

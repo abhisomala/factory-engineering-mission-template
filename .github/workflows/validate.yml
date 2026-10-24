@@ -26,3 +26,5 @@ jobs:
         run: python3 scripts/test_validate.py
       - name: Privacy scan
         run: python3 scripts/privacy_scan.py
+      - name: Markdown lint
+        run: python3 scripts/md_lint.py
