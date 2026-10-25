@@ -768,6 +768,35 @@ class ValidatorRegression(unittest.TestCase):
         self.assertIn("PASS: privacy scan", output)
         self.assertIn("RESULT: FAIL (1/4", output)
 
+    def test_check_runner_counts_an_error_as_not_passed_in_the_aggregate(self):
+        # PR #19 re-review finding 1: an unrunnable check must fail the run
+        # even when every other check passed. Built as a minimal isolated
+        # repository (four stubs, one of them unrunnable) so no other
+        # check's outcome can mask the aggregate verdict — in the shared
+        # fixture an unrunnable script usually breaks another check too,
+        # which is what left this case unpinned.
+        fake = Path(tempfile.mkdtemp(prefix="mission-runner-"))
+        self.addCleanup(shutil.rmtree, fake, True)
+        (fake / "scripts").mkdir()
+        shutil.copy2(ROOT / "scripts" / "check.py", fake / "scripts" / "check.py")
+        for script in ("validate.py", "test_validate.py", "privacy_scan.py"):
+            (fake / "scripts" / script).write_text("print('stub: ok')\n")
+        (fake / "scripts" / "md_lint.py").mkdir()
+        result = subprocess.run(
+            [sys.executable, str(fake / "scripts" / "check.py")],
+            cwd=fake, capture_output=True, text=True, timeout=60,
+        )
+        output = result.stdout + result.stderr
+        self.assertEqual(result.returncode, 1, output)
+        self.assertIn("ERROR: markdown lint", output)
+        self.assertIn("RESULT: FAIL (1/4 checks did not pass: markdown lint)", output)
+        statuses = re.findall(
+            r"^  (PASS|FAIL|ERROR)\s", output.split("summary:", 1)[1], flags=re.M
+        )
+        self.assertEqual(statuses, ["PASS", "PASS", "PASS", "ERROR"], output)
+        self.assertNotIn("RESULT: PASS", output)
+        self.assertNotIn(str(fake), output)
+
     def test_check_runner_sanitizes_forwarded_absolute_paths(self):
         # PR #19 review finding 1: a sub-check's output must not print the
         # operator's absolute repository root to the console.
