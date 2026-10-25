@@ -1,5 +1,12 @@
 # Factory Engineering Mission Template
 
+[![validate](https://github.com/abhisomala/factory-engineering-mission-template/actions/workflows/validate.yml/badge.svg?branch=main)](https://github.com/abhisomala/factory-engineering-mission-template/actions/workflows/validate.yml)
+
+<!-- Badge note for adopters: this badge reports THIS repository's CI
+     status. A fork that keeps it will show the template's runs, not
+     yours — change the owner/repo in the URL (or delete the line) after
+     you adopt the template. -->
+
 A reusable operating system for long-running, multi-agent engineering with
 Factory: an orchestrator that delegates to specialist workers, risk-tiered
 autonomy, evidence-based completion, independent review of high-risk
@@ -441,6 +448,7 @@ scripts/md_lint.py                structural markdown lint (stdlib only)
 scripts/check.py                   one command to run all four checks (stdlib only)
 agent_reports/2026-10-22.md        Day 1 + Day 2 daily reports (the template's own development record)
 agent_reports/2026-10-23.md        Day 3 daily report
+agent_reports/2026-10-24.md        Day 4 daily report
 ```
 
 ## Verifying your copy

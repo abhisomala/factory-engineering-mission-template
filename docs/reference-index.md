@@ -10,7 +10,7 @@ listed here because they are not shipped in the template; this
 repository's own development record under `agent_reports/` is shipped
 and is listed.
 
-As of: 2026-10-24 — 48 shipped files (verify with `git ls-files`).
+As of: 2026-10-24 — 49 shipped files (verify with `git ls-files`).
 Update this file in the same change that adds or removes a shipped
 file; every path below must resolve (the validator's reference check
 enforces that mechanically).
@@ -65,3 +65,4 @@ enforces that mechanically).
 | `scripts/check.py` | One command that runs all four checks (validation, regressions, privacy scan, markdown lint), prints each result, and fails if any did not pass. |
 | `agent_reports/2026-10-22.md` | Day 1 and Day 2 development record: cold-start test, snag table, exact validation runs. |
 | `agent_reports/2026-10-23.md` | Day 3 development record: the automation failure and resumption, the PR #11 review arc, format-gap dispositions. |
+| `agent_reports/2026-10-24.md` | Day 4 development record: the automated-trust PRs (CI, privacy scan, markdown lint, reporting templates, one-command runner), the eleven independent-review posts and five FIX-REQUIRED verdicts, and the residual gaps. |
