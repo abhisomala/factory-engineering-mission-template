@@ -32,11 +32,13 @@ As of: 2026-10-24.
   `.github/workflows/validate.yml` runs the structural self-validation,
   the regression suite, the privacy scan, and the markdown lint on every
   push to `main` and every pull request, on `ubuntu-latest` and
-  `macos-latest`, with `contents: read`. Its first runs are green on both
-  runners. Scope, stated precisely: CI checks out a **merge ref**, so a
-  green run is evidence for the merged tree rather than proof that a
-  branch tip executed; exact-head behavior rests on the recorded local
-  runs in the daily reports.
+  `macos-latest`, with `contents: read`. Its runs are green on both
+  runners at every merged head: two steps when it landed with PR #15
+  (validator, regressions), three after PR #16 added the privacy scan,
+  four from PR #17 onward. Scope, stated precisely: CI checks out a
+  **merge ref**, so a green run is evidence for the merged tree rather
+  than proof that a branch tip executed; exact-head behavior rests on the
+  recorded local runs in the daily reports.
 - **Its own output is checked for leaks.** Since 2026-10-24 (PR #16) a
   privacy scan covers service-token shapes, PEM blocks, credential
   assignments, email addresses, and absolute home paths across every
@@ -125,5 +127,6 @@ As of: 2026-10-24.
 Every `PROVEN` item above points at an artifact in this repository or a
 recorded review, and every `UNPROVEN` item names a specific gap with a
 concrete way to close it (measure a human-paced quickstart, onboard a
-team, add CI, run the example end to end). When a gap closes, move the
-item and date the change rather than deleting the record.
+team, run the checks on a Windows host, run the example end to end).
+When a gap closes, move the item and date the change rather than deleting
+the record.
