@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
+import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -623,23 +625,38 @@ class ValidatorRegression(unittest.TestCase):
         """Replace one sub-check with a fixed-exit stub.
 
         These tests are about the RUNNER's behavior (aggregation, exit-code
-        propagation, error reporting), not about re-running the whole suite:
-        the fixture's own test_validate.py would otherwise invoke check.py,
-        which invokes this suite again — unbounded recursion. The real
-        sub-checks are exercised by their own tests and by the top-level
-        `python3 scripts/check.py` run recorded in the PR evidence, so
-        stubbing the inner invocation here narrows nothing about the
-        runner's contract.
+        propagation, error reporting, continuation), not about re-running
+        the whole suite: the fixture's own test_validate.py would otherwise
+        invoke check.py, which invokes this suite again — unbounded
+        recursion. The real sub-checks are exercised by their own tests and
+        by the top-level `python3 scripts/check.py` run recorded in the PR
+        evidence, so stubbing the inner invocation narrows nothing about
+        the runner's contract.
         """
         self.write(script, f"import sys\nprint({message!r})\nsys.exit({code})\n")
 
     def check_cli(self):
+        """Run the runner in the fixture and return its RAW output.
+
+        Deliberately unmasked: a masked capture would make any
+        "the path does not appear" assertion vacuous and could hide a real
+        output leak (the PR #16/PR #19 lesson).
+        """
         result = subprocess.run(
             [sys.executable, str(self.root / "scripts/check.py")],
             cwd=self.root, capture_output=True, text=True, timeout=120,
         )
-        output = (result.stdout + result.stderr).replace(str(self.root), "<fixture>")
-        return result.returncode, output
+        return result.returncode, result.stdout + result.stderr
+
+    def test_validate_does_not_print_the_absolute_repository_root(self):
+        result = subprocess.run(
+            [sys.executable, str(self.root / "scripts/validate.py")],
+            cwd=self.root, capture_output=True, text=True, timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertNotIn(str(self.root), result.stdout)
+        self.assertNotIn(str(self.root), result.stderr)
+        self.assertIn("repo root: (absolute path omitted)", result.stdout)
 
     def test_check_runner_passes_on_the_registered_snapshot(self):
         self.stub_check("scripts/test_validate.py", 0, "stub: regressions ok")
@@ -649,21 +666,49 @@ class ValidatorRegression(unittest.TestCase):
         for label in ("structural self-validation", "validator regressions",
                       "privacy scan", "markdown lint"):
             self.assertIn(label, output)
+        # Unmasked assertion: no absolute repository root in the output.
         self.assertNotIn(str(self.root), output)
+        self.assertNotIn("Traceback", output)
 
-    def test_check_runner_propagates_a_failing_sub_check(self):
-        # The runner must never turn a failure into a pass, and must keep
-        # running the other checks so one pass shows every failure.
+    def test_check_runner_continues_after_an_early_failure(self):
+        # An early failing check must not stop the run: every later check
+        # still runs and still reports its own status.
+        # The first check (validate.py) is made to fail for real by planting
+        # an unregistered file; it cannot be stubbed like the others because
+        # every other check imports it as a module.
         self.stub_check("scripts/test_validate.py", 0, "stub: regressions ok")
-        self.write("docs/maturity.md", "# Title\n\n- trailing space   \n")
+        self.write("unregistered-extra.md", "# Title\n\nbody\n")
         code, output = self.check_cli()
         self.assertEqual(code, 1, output)
-        self.assertIn("RESULT: FAIL", output)
-        self.assertIn("FAIL: markdown lint", output)
-        self.assertIn("PASS: structural self-validation", output)
+        self.assertIn("FAIL: structural self-validation", output)
+        self.assertIn("PASS: validator regressions", output)
         self.assertIn("PASS: privacy scan", output)
+        self.assertIn("PASS: markdown lint", output)
+        self.assertIn("RESULT: FAIL (1/4", output)
 
-    def test_check_runner_reports_an_unrunnable_check_as_error(self):
+    def test_check_runner_reports_every_check_in_the_summary(self):
+        # Exactly four results, whatever the outcomes: a runner that skips
+        # a check after a failure cannot pass this.
+        self.stub_check("scripts/test_validate.py", 0, "stub: regressions ok")
+        self.write("unregistered-extra.md", "# Title\n\nbody\n")
+        code, output = self.check_cli()
+        self.assertEqual(code, 1, output)
+        summary = output.split("summary:", 1)[1]
+        statuses = re.findall(r"^  (PASS|FAIL|ERROR)\s", summary, flags=re.M)
+        self.assertEqual(len(statuses), 4, output)
+        self.assertEqual(statuses.count("PASS"), 3, output)
+        self.assertEqual(statuses.count("FAIL"), 1, output)
+
+    def test_check_runner_propagates_a_nonzero_sub_check_exit(self):
+        # A sub-check that ran and failed for its own reasons fails the run
+        # even when nothing else is wrong.
+        self.stub_check("scripts/test_validate.py", 3, "stub: three failures")
+        code, output = self.check_cli()
+        self.assertEqual(code, 1, output)
+        self.assertIn("FAIL: validator regressions", output)
+        self.assertIn("RESULT: FAIL (1/4", output)
+
+    def test_check_runner_reports_a_missing_check_as_error(self):
         # A check that cannot run is ERROR, never a silent skip or a pass.
         self.stub_check("scripts/test_validate.py", 0, "stub: regressions ok")
         (self.root / "scripts" / "md_lint.py").unlink()
@@ -673,14 +718,69 @@ class ValidatorRegression(unittest.TestCase):
         self.assertIn("RESULT: FAIL", output)
         self.assertNotIn("RESULT: PASS", output)
 
-    def test_check_runner_propagates_a_nonzero_sub_check_exit(self):
-        # A sub-check that fails for its own reasons must fail the run even
-        # when nothing else is wrong.
-        self.stub_check("scripts/test_validate.py", 3, "stub: three failures")
+    def test_check_runner_reports_a_non_file_check_as_error(self):
+        # PR #19 review finding 2: a directory where a check should be means
+        # the check never ran — ERROR, not FAIL.
+        # Stub target note: md_lint.py is a leaf (nothing imports it), so
+        # replacing it cannot disturb another check's import.
+        self.stub_check("scripts/test_validate.py", 0, "stub: regressions ok")
+        target = self.root / "scripts" / "md_lint.py"
+        target.unlink()
+        target.mkdir()
+        try:
+            code, output = self.check_cli()
+            self.assertEqual(code, 1, output)
+            self.assertIn("ERROR: markdown lint", output)
+            self.assertIn("not a regular file", output)
+        finally:
+            shutil.rmtree(target, ignore_errors=True)
+
+    def test_check_runner_reports_an_unreadable_check_as_error(self):
+        # os.geteuid is POSIX-only; skip the case where it is absent rather
+        # than failing an adopter's suite on Windows.
+        if hasattr(os, "geteuid") and os.geteuid() == 0:
+            self.skipTest("root bypasses file permissions")
+        self.stub_check("scripts/test_validate.py", 0, "stub: regressions ok")
+        target = self.root / "scripts" / "md_lint.py"
+        target.chmod(0o000)
+        try:
+            code, output = self.check_cli()
+        finally:
+            target.chmod(0o644)
+        self.assertEqual(code, 1, output)
+        self.assertIn("ERROR: markdown lint", output)
+
+    def test_check_runner_survives_undecodable_check_output(self):
+        # PR #19 review finding 3: invalid bytes must not abort the run or
+        # hide the failing check's real exit code.
+        self.stub_check("scripts/test_validate.py", 0, "stub: regressions ok")
+        self.write(
+            "scripts/md_lint.py",
+            "import sys\n"
+            "sys.stdout.buffer.write(b'\\xff\\xfe invalid')\n"
+            "sys.stdout.flush()\n"
+            "sys.exit(9)\n",
+        )
         code, output = self.check_cli()
         self.assertEqual(code, 1, output)
-        self.assertIn("FAIL: validator regressions", output)
+        self.assertNotIn("Traceback", output)
+        self.assertIn("FAIL: markdown lint", output)
+        self.assertIn("PASS: privacy scan", output)
         self.assertIn("RESULT: FAIL (1/4", output)
+
+    def test_check_runner_sanitizes_forwarded_absolute_paths(self):
+        # PR #19 review finding 1: a sub-check's output must not print the
+        # operator's absolute repository root to the console.
+        self.stub_check("scripts/test_validate.py", 0, "stub: regressions ok")
+        self.write(
+            "scripts/md_lint.py",
+            "import os\n"
+            "print(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\n",
+        )
+        code, output = self.check_cli()
+        self.assertEqual(code, 0, output)
+        self.assertNotIn(str(self.root), output)
+        self.assertIn("<repo root>", output)
 
 
 if __name__ == "__main__":
