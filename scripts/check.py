@@ -54,9 +54,17 @@ TIMEOUT_SECONDS = 900
 def make_sanitizer(root: str):
     """Return a function replacing this repository's absolute root.
 
-    Both the given root and its real path (a different string when the
-    checkout sits behind a symlink) are replaced, so neither spelling
+    Both the given root and its OS-resolved path (a different string when
+    the checkout sits behind a symlink) are replaced, so neither spelling
     reaches the output.
+
+    Stated limit: those are the two spellings a check can print without
+    contriving a third. A check that builds a path to this same directory
+    where an intermediate component stays unresolved while this root
+    resolved it is not covered. The runner takes its root from its own
+    __file__ and the checks compute theirs the same way, so the two
+    candidates above are the realistic set — this paragraph exists so the
+    guarantee is not overstated.
     """
     candidates = [root, os.path.realpath(root)]
     ordered = sorted(set(candidates), key=len, reverse=True)

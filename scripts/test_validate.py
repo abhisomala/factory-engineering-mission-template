@@ -3,7 +3,10 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
+import importlib.util
+import io
 from pathlib import Path
 import os
 import re
@@ -11,6 +14,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from unittest import mock
 import unittest
 
 import validate
@@ -810,6 +814,115 @@ class ValidatorRegression(unittest.TestCase):
         self.assertEqual(code, 0, output)
         self.assertNotIn(str(self.root), output)
         self.assertIn("<repo root>", output)
+
+    # The next four tests pin runner behavior that cannot be reached through
+    # a subprocess from the fixture without waiting 900 seconds or forcing
+    # an OS error: the runner is therefore loaded as a module and the one
+    # constant or seam under test is replaced. Each asserts the real code
+    # path, not a stub of it. Recorded as non-blocking coverage gaps in the
+    # PR #19 independent review.
+
+    def load_runner(self):
+        """Load the fixture's scripts/check.py as an importable module."""
+        spec = importlib.util.spec_from_file_location(
+            "check_runner_under_test", self.root / "scripts" / "check.py"
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_check_runner_forwards_stderr_from_a_check(self):
+        # A check's stderr is evidence too: dropping it would hide failures
+        # that a check reports only there.
+        self.stub_check("scripts/test_validate.py", 0, "stub: regressions ok")
+        self.write(
+            "scripts/md_lint.py",
+            "import sys\n"
+            "print('stdout marker')\n"
+            "print('stderr marker', file=sys.stderr)\n",
+        )
+        code, output = self.check_cli()
+        self.assertEqual(code, 0, output)
+        self.assertIn("stdout marker", output)
+        self.assertIn("stderr marker", output)
+
+    def test_check_runner_reports_a_sub_check_exit_code_unchanged(self):
+        # The exact code a check exited with must reach the report: a runner
+        # that normalised it to 0/1 would hide which check failed how.
+        self.stub_check("scripts/test_validate.py", 3, "stub: three failures")
+        self.write(
+            "scripts/md_lint.py",
+            "import sys\nsys.exit(9)\n",
+        )
+        code, output = self.check_cli()
+        self.assertEqual(code, 1, output)
+        self.assertIn("validator regressions (exit 3)", output)
+        self.assertIn("markdown lint (exit 9)", output)
+        self.assertIn("RESULT: FAIL (2/4", output)
+
+    def test_check_runner_sanitizer_covers_both_root_spellings(self):
+        # A checkout reached through a symlink has two spellings of its
+        # root — the one it was invoked with and the resolved one — and
+        # both must be replaced, or the operator's real path leaks.
+        # The documented limit (a contrived third spelling) is stated in
+        # make_sanitizer's docstring and is not asserted here as covered.
+        real = self.root / "real-repo"
+        real.mkdir()
+        link = self.root / "linked-repo"
+        link.symlink_to(real, target_is_directory=True)
+        module = self.load_runner()
+        sanitize = module.make_sanitizer(str(link))
+        resolved = os.path.realpath(str(link))
+        self.assertNotIn(str(link), sanitize(f"wrote {link}/scripts/x.py"))
+        self.assertNotIn(resolved, sanitize(f"wrote {resolved}/scripts/x.py"))
+        self.assertIn("<repo root>/scripts/x.py", sanitize(f"wrote {link}/scripts/x.py"))
+        self.assertIn("<repo root>/scripts/x.py", sanitize(f"wrote {resolved}/scripts/x.py"))
+
+    def test_check_runner_reports_a_timed_out_check_as_error(self):
+        # The timeout path is otherwise unreachable without waiting 900s.
+        module = self.load_runner()
+        module.TIMEOUT_SECONDS = 1
+        self.stub_check("scripts/test_validate.py", 0, "stub: regressions ok")
+        self.write("scripts/slow-stub.py", "import time\ntime.sleep(10)\n")
+        sanitize = module.make_sanitizer(str(self.root))
+        status, code, output = module.run_check(
+            str(self.root), "scripts/slow-stub.py", sanitize
+        )
+        self.assertEqual(status, "ERROR", output)
+        self.assertEqual(code, 124, output)
+        self.assertIn("timed out", output)
+        self.assertNotIn(str(self.root), output)
+        # A timed-out check must not stop the ones after it.
+        module.CHECKS = (
+            ("slow check", "scripts/slow-stub.py"),
+            ("markdown lint", "scripts/md_lint.py"),
+        )
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            exit_code = module.main()
+        report = buffer.getvalue()
+        self.assertEqual(exit_code, 1, report)
+        self.assertIn("ERROR: slow check", report)
+        self.assertIn("PASS: markdown lint", report)
+        self.assertIn("RESULT: FAIL (1/2 checks did not pass: slow check)", report)
+
+    def test_check_runner_reports_a_start_failure_as_error(self):
+        # A check the OS refuses to start never ran: ERROR, and the
+        # exception text (which can carry an absolute path) is not printed.
+        module = self.load_runner()
+        refusal = OSError(13, "Permission denied", str(self.root / "scripts"))
+        with mock.patch.object(module.subprocess, "run", side_effect=refusal):
+            status, code, output = module.run_check(
+                str(self.root), "scripts/md_lint.py", module.make_sanitizer(str(self.root))
+            )
+        self.assertEqual(status, "ERROR", output)
+        self.assertEqual(code, 126, output)
+        self.assertIn("could not start", output)
+        # The exception's type name is reported; its message (which can
+        # carry an absolute path) is not.
+        self.assertIn("(PermissionError)", output)
+        self.assertNotIn(str(self.root), output)
+        self.assertNotIn("Permission denied", output)
 
 
 if __name__ == "__main__":
