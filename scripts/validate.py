@@ -528,7 +528,7 @@ def parse_args() -> argparse.Namespace:
 def main_adopted() -> int:
     root = repo_root()
     print("validate.py --adopted - adopted-repository readiness check")
-    print(f"repo root: {root}")
+    print("repo root: (absolute path omitted)")
     print()
     results = adopted_checks(root)
     for index, (title, _passed, lines) in enumerate(results, start=1):
@@ -547,7 +547,7 @@ def main() -> int:
         return main_adopted()
     root = repo_root()
     print("validate.py - structural self-validation")
-    print(f"repo root: {root}")
+    print("repo root: (absolute path omitted)")
     print()
 
     files = walk_files(root)

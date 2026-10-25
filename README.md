@@ -438,11 +438,25 @@ scripts/worked_examples.py         schemas for the three synthetic worked exampl
 scripts/test_validate.py           isolated offline validator regressions (stdlib only)
 scripts/privacy_scan.py            secret-shape and private-identifier scan (stdlib only)
 scripts/md_lint.py                structural markdown lint (stdlib only)
+scripts/check.py                   one command to run all four checks (stdlib only)
 agent_reports/2026-10-22.md        Day 1 + Day 2 daily reports (the template's own development record)
 agent_reports/2026-10-23.md        Day 3 daily report
 ```
 
 ## Verifying your copy
+
+Run every check this template ships with one command:
+
+```text
+python3 scripts/check.py
+```
+
+That runs the structural self-validation, the validator regressions, the
+privacy scan, and the markdown lint in one pass, prints each result, and
+exits non-zero if any of them did not pass. It is a runner, not a gate:
+each check keeps its own rules, and a check that cannot run is reported
+as an error rather than skipped. The checks below can also be run
+individually.
 
 Run the structural self-check from the repository root:
 
